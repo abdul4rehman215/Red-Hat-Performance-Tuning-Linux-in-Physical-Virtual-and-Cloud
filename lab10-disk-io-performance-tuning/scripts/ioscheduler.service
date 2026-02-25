@@ -1,0 +1,13 @@
+# /etc/systemd/system/ioscheduler.service (systemd persistence — content I added)
+
+[Unit]
+Description=Set optimal I/O scheduler
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'echo none > /sys/block/nvme0n1/queue/scheduler'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
