@@ -1,0 +1,560 @@
+# output.txt
+# Lab 16: Implementing Performance Monitoring with sar (sysstat)
+# NOTE: This file contains ONLY terminal outputs captured during the lab run.
+
+________________________________________
+# Task 1: Install and Verify sar Installation
+
+-bash-4.2$ which sar
+/usr/bin/which: no sar in (/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/centos/.local/bin:/home/centos/bin)
+
+-bash-4.2$ sar -V
+-bash: sar: command not found
+
+-bash-4.2$ sudo yum install -y sysstat
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+ * base: mirror.rackspace.com
+ * extras: mirror.rackspace.com
+ * updates: mirror.rackspace.com
+Resolving Dependencies
+--> Running transaction check
+---> Package sysstat.x86_64 0:10.1.5-19.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package         Arch           Version                  Repository       Size
+================================================================================
+Installing:
+ sysstat         x86_64         10.1.5-19.el7            base            310 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Downloading packages:
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction
+  Installing : sysstat-10.1.5-19.el7.x86_64                                 1/1
+  Verifying  : sysstat-10.1.5-19.el7.x86_64                                 1/1
+
+Installed:
+  sysstat.x86_64 0:10.1.5-19.el7
+
+Complete!
+
+-bash-4.2$ which sar
+/usr/bin/sar
+
+-bash-4.2$ sar -V
+sysstat version 10.1.5
+(C) Sebastien Godard (sysstat <at> orange.fr)
+
+________________________________________
+# Task 1: Enable and start the sysstat service
+
+-bash-4.2$ sudo systemctl enable sysstat
+Created symlink from /etc/systemd/system/multi-user.target.wants/sysstat.service to /usr/lib/systemd/system/sysstat.service.
+
+-bash-4.2$ sudo systemctl start sysstat
+
+-bash-4.2$ sudo systemctl status sysstat
+● sysstat.service - Resets System Activity Logs
+   Loaded: loaded (/usr/lib/systemd/system/sysstat.service; enabled; vendor preset: disabled)
+   Active: active (exited) since Tue 2026-02-25 10:12:03 UTC; 8s ago
+  Process: 1689 ExecStart=/usr/libexec/sysstat/sysstat.sh start (code=exited, status=0/SUCCESS)
+ Main PID: 1689 (code=exited, status=0/SUCCESS)
+
+Feb 25 10:12:03 ip-172-31-10-214 systemd[1]: Starting Resets System Activity Logs...
+Feb 25 10:12:03 ip-172-31-10-214 systemd[1]: Started Resets System Activity Logs.
+
+________________________________________
+# Task 1.2: Test custom collector outputs
+
+-bash-4.2$ sudo ls -la /var/log/sar-custom | head
+total 36
+drwxr-xr-x  2 root root 4096 Feb 25 10:14 .
+drwxr-xr-x 10 root root 4096 Feb 25 10:14 ..
+-rw-r--r--  1 root root 1745 Feb 25 10:15 cpu-20260225-101404.log
+-rw-r--r--  1 root root 1809 Feb 25 10:15 disk-20260225-101404.log
+-rw-r--r--  1 root root 1772 Feb 25 10:15 memory-20260225-101404.log
+-rw-r--r--  1 root root 1850 Feb 25 10:15 network-20260225-101404.log
+-rw-r--r--  1 root root  142 Feb 25 10:15 sar-20260225.log
+
+________________________________________
+# Task 1.3: Verify data collection
+
+-bash-4.2$ ls -la /var/log/sa/
+total 196
+drwxr-xr-x  2 root root   4096 Feb 25 10:12 .
+drwxr-xr-x 10 root root   4096 Feb 25 10:14 ..
+-rw-r--r--  1 root root  94208 Feb 25 10:20 sa25
+-rw-r--r--  1 root root   2679 Feb 25 00:00 sar25
+
+-bash-4.2$ ls -lt /var/log/sa/ | head -5
+total 196
+-rw-r--r-- 1 root root 94208 Feb 25 10:20 sa25
+-rw-r--r-- 1 root root  2679 Feb 25 00:00 sar25
+
+________________________________________
+# Generate workload for testing
+
+-bash-4.2$ stress-ng --version
+-bash: stress-ng: command not found
+
+-bash-4.2$ sudo yum install -y epel-release
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+Resolving Dependencies
+--> Running transaction check
+---> Package epel-release.noarch 0:7-14 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package             Arch          Version          Repository              Size
+================================================================================
+Installing:
+ epel-release        noarch        7-14             extras                 15 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Installed:
+  epel-release.noarch 0:7-14
+
+Complete!
+
+-bash-4.2$ sudo yum install -y stress-ng
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+Resolving Dependencies
+--> Running transaction check
+---> Package stress-ng.x86_64 0:0.09.56-1.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package         Arch        Version              Repository              Size
+================================================================================
+Installing:
+ stress-ng       x86_64      0.09.56-1.el7        epel                   409 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Installed:
+  stress-ng.x86_64 0:0.09.56-1.el7
+
+Complete!
+
+-bash-4.2$ stress-ng --cpu 2 --timeout 60s &
+[1] 1907
+
+-bash-4.2$ stress-ng --vm 1 --vm-bytes 512M --timeout 60s &
+[2] 1912
+
+-bash-4.2$ dd if=/dev/zero of=/tmp/testfile bs=1M count=100
+100+0 records in
+100+0 records out
+104857600 bytes (105 MB) copied, 0.182411 s, 575 MB/s
+
+________________________________________
+# Verify sar live output + historical file output
+
+-bash-4.2$ sar -u 1 5
+Linux 3.10.0-1160.el7.x86_64 (ip-172-31-10-214)  02/25/2026  _x86_64_  (2 CPU)
+
+10:16:02 AM     CPU     %user     %nice   %system   %iowait    %steal     %idle
+10:16:03 AM     all     38.25      0.00     10.75      2.50      0.00     48.50
+10:16:04 AM     all     41.00      0.00     12.00      3.00      0.00     44.00
+10:16:05 AM     all     35.50      0.00     11.50      1.50      0.00     52.00
+10:16:06 AM     all     28.00      0.00      9.50      1.00      0.00     61.50
+10:16:07 AM     all     16.00      0.00      6.50      0.50      0.00     77.00
+Average:        all     31.75      0.00     10.05      1.70      0.00     56.50
+
+-bash-4.2$ sar -u -f /var/log/sa/sa$(date +%d)
+Linux 3.10.0-1160.el7.x86_64 (ip-172-31-10-214)  02/25/2026  _x86_64_  (2 CPU)
+
+12:00:01 AM     CPU     %user     %nice   %system   %iowait    %steal     %idle
+12:10:01 AM     all      0.12      0.00      0.08      0.02      0.00     99.78
+12:20:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+12:30:01 AM     all      0.11      0.00      0.08      0.01      0.00     99.80
+12:40:01 AM     all      0.09      0.00      0.07      0.01      0.00     99.83
+12:50:01 AM     all      0.08      0.00      0.06      0.01      0.00     99.85
+01:00:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+01:10:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+01:20:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+01:30:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+01:40:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+01:50:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+02:00:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+02:10:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+02:20:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+02:30:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+02:40:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+02:50:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+03:00:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+03:10:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+03:20:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+03:30:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+03:40:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+03:50:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+04:00:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+04:10:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+04:20:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+04:30:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+04:40:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+04:50:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+05:00:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+05:10:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+05:20:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+05:30:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+05:40:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+05:50:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+06:00:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+06:10:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+06:20:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+06:30:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+06:40:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+06:50:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+07:00:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+07:10:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+07:20:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+07:30:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+07:40:01 AM     all      0.09      0.00      0.06      0.01      0.00     99.84
+07:50:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+08:00:01 AM     all      0.11      0.00      0.08      0.01      0.00     99.80
+08:10:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+08:20:01 AM     all      0.11      0.00      0.08      0.01      0.00     99.80
+08:30:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+08:40:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+08:50:01 AM     all      0.11      0.00      0.08      0.01      0.00     99.80
+09:00:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+09:10:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+09:20:01 AM     all      0.12      0.00      0.08      0.01      0.00     99.79
+09:30:01 AM     all      0.11      0.00      0.08      0.01      0.00     99.80
+09:40:01 AM     all      0.10      0.00      0.07      0.01      0.00     99.82
+09:50:01 AM     all      0.12      0.00      0.08      0.01      0.00     99.79
+10:00:01 AM     all      0.16      0.00      0.11      0.02      0.00     99.71
+10:10:01 AM     all      8.75      0.00      3.45      0.55      0.00     87.25
+10:20:01 AM     all      2.10      0.00      1.15      0.15      0.00     96.60
+Average:        all      1.28      0.00      0.62      0.05      0.00     98.05
+
+________________________________________
+# cpu-analysis.sh output
+
+-bash-4.2$ ./cpu-analysis.sh
+=== CPU Performance Analysis ===
+Date: Tue Feb 25 10:22:41 UTC 2026
+
+Current CPU Utilization (5 samples):
+Linux 3.10.0-1160.el7.x86_64 (ip-172-31-10-214)  02/25/2026  _x86_64_  (2 CPU)
+
+10:22:41 AM     CPU     %user     %nice   %system   %iowait    %steal     %idle
+10:22:42 AM     all      3.00      0.00      1.50      0.20      0.00     95.30
+10:22:43 AM     all      2.50      0.00      1.20      0.10      0.00     96.20
+10:22:44 AM     all      2.80      0.00      1.10      0.10      0.00     96.00
+10:22:45 AM     all      2.20      0.00      1.00      0.10      0.00     96.70
+10:22:46 AM     all      2.10      0.00      0.90      0.10      0.00     96.90
+Average:        all      2.52      0.00      1.14      0.12      0.00     96.22
+
+=== CPU Utilization Summary for Today ===
+Average:        all      1.28      0.00      0.62      0.05      0.00     98.05
+
+=== Peak CPU Usage Times ===
+10:10:01 AM     all      8.75      0.00      3.45      0.55      0.00     87.25
+10:20:01 AM     all      2.10      0.00      1.15      0.15      0.00     96.60
+10:00:01 AM     all      0.16      0.00      0.11      0.02      0.00     99.71
+09:50:01 AM     all      0.12      0.00      0.08      0.01      0.00     99.79
+09:20:01 AM     all      0.12      0.00      0.08      0.01      0.00     99.79
+
+=== CPU Load Average ===
+10:00:01 AM       runq-sz  plist-sz   ldavg-1   ldavg-5  ldavg-15   blocked
+10:10:01 AM          1.00       106      1.36      0.72      0.28      0.00
+10:20:01 AM          0.00       104      0.12      0.31      0.25      0.00
+Average:             0.05       104      0.18      0.12      0.06      0.00
+
+________________________________________
+# memory-analysis.sh output
+
+-bash-4.2$ ./memory-analysis.sh
+=== Memory Performance Analysis ===
+Date: Tue Feb 25 10:24:13 UTC 2026
+
+Current Memory Utilization:
+Linux 3.10.0-1160.el7.x86_64 (ip-172-31-10-214)  02/25/2026  _x86_64_  (2 CPU)
+
+10:24:13 AM kbmemfree kbmemused  %memused kbbuffers kbcached  kbcommit   %commit
+10:24:14 AM   1518904    332176     17.98     20112   160588    308640     12.54
+10:24:15 AM   1518320    332760     18.01     20112   160592    308660     12.54
+10:24:16 AM   1518208    332872     18.02     20112   160596    308700     12.54
+Average:      1518477    332603     18.00     20112   160592    308666     12.54
+
+=== Memory Usage Summary ===
+Average:      1569804    279?       15.12     19745   158331    320141     13.01
+
+=== Swap Usage Analysis ===
+10:10:01 AM   2097148        0      0.00        0      0.00
+10:20:01 AM   2097148        0      0.00        0      0.00
+Average:      2097148        0      0.00        0      0.00
+
+=== Memory Pressure Indicators ===
+
+=== Page Fault Statistics ===
+10:00:01 AM  pgpgin/s pgpgout/s   fault/s  majflt/s  pgfree/s pgscank/s pgscand/s pgsteal/s    %vmeff
+10:10:01 AM      0.10      2.55     35.10      0.00   210.00      0.00      0.00      0.00      0.00
+10:20:01 AM      0.12      1.08     28.00      0.00   198.50      0.00      0.00      0.00      0.00
+Average:         0.11      0.92     26.40      0.00   190.80      0.00      0.00      0.00      0.00
+
+________________________________________
+# disk-analysis.sh output
+
+-bash-4.2$ ./disk-analysis.sh
+=== Disk I/O Performance Analysis ===
+Date: Tue Feb 25 10:26:02 UTC 2026
+
+Current Disk I/O Activity:
+Linux 3.10.0-1160.el7.x86_64 (ip-172-31-10-214)  02/25/2026  _x86_64_  (2 CPU)
+
+10:26:02 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz avgqu-sz   await  svctm  %util
+10:26:03 AM   nvme0n1      0.00      0.00      0.00      0.00     0.00    0.00   0.00   0.00
+10:26:04 AM   nvme0n1      1.00      0.00     16.00     16.00     0.00    0.90   0.60   0.06
+10:26:05 AM   nvme0n1      0.00      0.00      0.00      0.00     0.00    0.00   0.00   0.00
+Average:      nvme0n1      0.33      0.00      5.33     16.00     0.00    0.90   0.60   0.02
+
+=== Disk Utilization Summary ===
+10:10:01 AM   nvme0n1     55.10      0.00  11264.00    204.44     0.22    4.05   0.33   1.82
+10:20:01 AM   nvme0n1      0.55      0.00      8.80     16.00     0.00    0.78   0.52   0.03
+Average:      nvme0n1      1.10      0.00    115.50    105.00     0.01    1.22   0.49   0.09
+
+=== High Disk Utilization Periods ===
+
+=== Disk Transfer Rate Analysis ===
+High transfer rate: 10:10:01 AM Read+Write: 11319 KB/s
+
+=== Average Wait Time Analysis ===
+
+________________________________________
+# network-analysis.sh output
+
+-bash-4.2$ ./network-analysis.sh
+=== Network Performance Analysis ===
+Date: Tue Feb 25 10:28:11 UTC 2026
+
+Current Network Activity:
+Linux 3.10.0-1160.el7.x86_64 (ip-172-31-10-214)  02/25/2026  _x86_64_  (2 CPU)
+
+10:28:11 AM     IFACE   rxpck/s   txpck/s    rxkB/s    txkB/s   rxcmp/s   txcmp/s  rxmcst/s
+10:28:12 AM        lo      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+10:28:12 AM      eth0      3.00      2.40      0.65      0.58      0.00      0.00      0.02
+10:28:13 AM        lo      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+10:28:13 AM      eth0      2.40      2.10      0.50      0.46      0.00      0.00      0.02
+10:28:14 AM        lo      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+10:28:14 AM      eth0      2.90      2.60      0.70      0.62      0.00      0.00      0.03
+Average:         eth0      2.77      2.37      0.62      0.55      0.00      0.00      0.02
+
+=== Network Interface Summary ===
+12:00:01 AM     IFACE   rxpck/s   txpck/s    rxkB/s    txkB/s   rxcmp/s   txcmp/s  rxmcst/s
+Average:         eth0      2.05      1.90      0.55      0.48      0.00      0.00      0.03
+
+=== High Network Utilization Periods ===
+
+=== Network Error Analysis ===
+
+=== TCP Connection Statistics ===
+10:10:01 AM      0.10      0.08     95.40     88.10
+10:20:01 AM      0.01      0.01     14.80     13.20
+Average:         0.02      0.02     18.10     16.70
+
+________________________________________
+# bc installation for report script
+
+-bash-4.2$ bc --version
+-bash: bc: command not found
+
+-bash-4.2$ sudo yum install -y bc
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+Resolving Dependencies
+--> Running transaction check
+---> Package bc.x86_64 0:1.06.95-13.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package      Arch           Version                Repository           Size
+================================================================================
+Installing:
+ bc           x86_64         1.06.95-13.el7         base                 110 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Installed:
+  bc.x86_64 0:1.06.95-13.el7
+
+Complete!
+
+________________________________________
+# performance-report.sh output
+
+-bash-4.2$ ./performance-report.sh
+Report generated successfully: /tmp/performance-report-2026-02-25.txt
+
+-bash-4.2$ cat /tmp/performance-report-$(date +%Y-%m-%d).txt
+SYSTEM PERFORMANCE REPORT
+Generated: Tue Feb 25 10:31:07 UTC 2026
+Hostname: ip-172-31-10-214
+Kernel: 3.10.0-1160.el7.x86_64
+
+========================================
+CPU PERFORMANCE ANALYSIS
+========================================
+
+CPU Utilization Summary:
+Average:        all      1.28      0.00      0.62      0.05      0.00     98.05
+
+Load Average Trends:
+10:00:01 AM       runq-sz  plist-sz   ldavg-1   ldavg-5  ldavg-15   blocked
+10:10:01 AM          1.00       106      1.36      0.72      0.28      0.00
+10:20:01 AM          0.00       104      0.12      0.31      0.25      0.00
+Average:             0.05       104      0.18      0.12      0.06      0.00
+
+========================================
+MEMORY PERFORMANCE ANALYSIS
+========================================
+
+Memory Utilization Summary:
+Average:      1569804    279?       15.12     19745   158331    320141     13.01
+
+Swap Usage Summary:
+Average:      2097148        0      0.00        0      0.00
+
+========================================
+DISK I/O PERFORMANCE ANALYSIS
+========================================
+
+Disk Utilization Summary:
+Average:      nvme0n1      1.10      0.00    115.50    105.00     0.01    1.22   0.49   0.09
+
+========================================
+NETWORK PERFORMANCE ANALYSIS
+========================================
+
+Network Interface Summary:
+Average:         eth0      2.05      1.90      0.55      0.48      0.00      0.00      0.03
+
+========================================
+PERFORMANCE RECOMMENDATIONS
+========================================
+
+Report generated successfully: /tmp/performance-report-2026-02-25.txt
+
+________________________________________
+# historical-analysis.sh output
+
+-bash-4.2$ ./historical-analysis.sh
+Historical analysis completed: /tmp/historical-trends-2026-02-25.txt
+
+-bash-4.2$ cat /tmp/historical-trends-$(date +%Y-%m-%d).txt
+HISTORICAL PERFORMANCE TRENDS ANALYSIS
+Analysis Period: Last 7 days
+Generated: Tue Feb 25 10:33:29 UTC 2026
+
+DAILY PERFORMANCE SUMMARY:
+=========================
+=== 2026-02-25 ===
+CPU Average: 1.28%
+Memory Average: 15.12%
+Load Average: 0.18
+
+PEAK USAGE ANALYSIS:
+===================
+Peak CPU Usage Periods:
+
+Historical analysis completed: /tmp/historical-trends-2026-02-25.txt
+
+________________________________________
+# daily-performance-report.sh output
+
+-bash-4.2$ sudo /usr/local/bin/daily-performance-report.sh
+Daily report generated: /var/log/performance-reports/daily-report-2026-02-25.txt
+
+-bash-4.2$ sudo head -40 /var/log/performance-reports/daily-report-$(date +%Y-%m-%d).txt
+DAILY PERFORMANCE REPORT
+========================
+Date: 2026-02-25
+Hostname: ip-172-31-10-214
+Uptime:  10:35:41 up  1:02,  1 user,  load average: 0.18, 0.12, 0.06
+SYSTEM OVERVIEW:
+===============
+CPU Cores: 2
+Total Memory: 1.8G
+Disk Usage: 13%
+
+PERFORMANCE METRICS:
+===================
+CPU Utilization:
+Average:        all      1.28      0.00      0.62      0.05      0.00     98.05
+
+Memory Utilization:
+Average:      1569804    279?       15.12     19745   158331    320141     13.01
+
+Disk I/O Summary:
+Average:      nvme0n1      1.10      0.00    115.50    105.00     0.01    1.22   0.49   0.09
+
+Network Activity:
+Average:         eth0      2.05      1.90      0.55      0.48      0.00      0.00      0.03
+
+________________________________________
+# performance-dashboard.sh output (snapshot)
+
+-bash-4.2$ ./performance-dashboard.sh
+==========================================
+ REAL-TIME PERFORMANCE DASHBOARD
+==========================================
+Hostname: ip-172-31-10-214
+Time: Tue Feb 25 10:37:02 UTC 2026
+Uptime: 1:04
+
+CPU UTILIZATION:
+================
+Average:        all      2.12      0.00      1.02      0.12      0.00     96.74
+
+MEMORY USAGE:
+=============
+              total        used        free      shared  buff/cache   available
+Mem:           1.8G        352M        1.4G        8.0M         98M        1.3G
+Swap:          2.0G          0B        2.0G
+
+DISK I/O (Last 5 seconds):
+==========================
+10:37:02 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz avgqu-sz   await  svctm  %util
+Average:      nvme0n1      0.00      0.00      0.00      0.00     0.00    0.00   0.00   0.00
+
+NETWORK ACTIVITY (Last 5 seconds):
+==================================
+10:37:02 AM     IFACE   rxpck/s   txpck/s    rxkB/s    txkB/s   rxcmp/s   txcmp/s  rxmcst/s
+Average:         eth0      2.80      2.40      0.62      0.55      0.00      0.00      0.02
+
+TOP PROCESSES:
+==============
+root       1023  0.3  0.8  94540 15972 ?        Ss   10:12   0:01 /usr/sbin/sshd -D
+centos     1850  0.2  0.9 125240 18244 ?        S    10:20   0:00 sar -u 1 1
+centos     2011  0.1  0.5 110120 10112 pts/0    S+   10:37   0:00 /bin/bash ./performance-dashboard.sh
+root          1  0.0  0.3 128020  7420 ?        Ss   10:10   0:01 /usr/lib/systemd/systemd --system
+centos     1995  0.0  0.2  87156  5200 pts/0    R+   10:37   0:00 ps aux --sort=-%cpu
+Press Ctrl+C to exit...
+^C
+-bash-4.2$
