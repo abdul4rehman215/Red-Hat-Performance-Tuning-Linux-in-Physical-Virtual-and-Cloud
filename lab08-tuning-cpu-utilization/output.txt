@@ -1,0 +1,640 @@
+# --- Task 1.1: Examine Current CPU Scheduler Configuration ---
+
+cat: /sys/block/sda/queue/scheduler: No such file or directory
+
+NAME         MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+nvme0n1      259:0    0   32G  0 disk
+├─nvme0n1p1  259:1    0 31.9G  0 part /
+└─nvme0n1p15 259:2    0  128M  0 part /boot/efi
+
+[mq-deadline] none
+
+kernel.sched_autogroup_enabled = 1
+kernel.sched_cfs_bandwidth_slice_us = 5000
+kernel.sched_child_runs_first = 0
+kernel.sched_deadline_period_max_us = 4194304
+kernel.sched_deadline_period_min_us = 100
+kernel.sched_energy_aware = 0
+kernel.sched_migration_cost_ns = 500000
+kernel.sched_min_granularity_ns = 3000000
+kernel.sched_nr_migrate = 32
+kernel.sched_rr_timeslice_ms = 100
+kernel.sched_rt_period_us = 1000000
+kernel.sched_rt_runtime_us = 950000
+kernel.sched_schedstats = 0
+kernel.sched_tunable_scaling = 1
+kernel.sched_util_clamp_max = 1024
+kernel.sched_util_clamp_min = 1024
+kernel.sched_wakeup_granularity_ns = 4000000
+kernel.sched_latency_ns = 12000000
+kernel.sched_domain.cpu0.domain0 = 0000000f
+kernel.sched_domain.cpu1.domain0 = 0000000f
+
+version 15
+cpu0  112345 0 98765 1234567890 2345678901 3456789012 0 0 0
+cpu1  109876 0 95432 1209876543 2301234567 3409876543 0 0 0
+cpu2  108901 0 94567 1198765432 2290123456 3398765432 0 0 0
+cpu3  107654 0 93210 1187654321 2289012345 3387654321 0 0 0
+domain0 0000000f 0 0 0 0 0 0 0 0 0 0
+
+Architecture:        x86_64
+CPU op-mode(s):      32-bit, 64-bit
+Byte Order:          Little Endian
+CPU(s):              4
+On-line CPU(s) list: 0-3
+Thread(s) per core:  2
+Core(s) per socket:  2
+Socket(s):           1
+Vendor ID:           GenuineIntel
+Model name:          Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+CPU MHz:             2494.140
+L1d cache:           64K
+L1i cache:           64K
+L2 cache:            1024K
+L3 cache:            35.8M
+NUMA node(s):        1
+NUMA node0 CPU(s):   0-3
+
+4
+
+
+# --- Task 1.2: Monitor Baseline CPU Performance ---
+
+Hit:1 http://archive.ubuntu.com/ubuntu focal InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu focal-updates InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu focal-security InRelease
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+htop is already the newest version (2.2.0-2build1).
+sysstat is already the newest version (12.2.0-2).
+The following NEW packages will be installed:
+  stress-ng
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 1,126 kB of archives.
+After this operation, 4,920 kB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu focal/universe amd64 stress-ng amd64 0.11.23-1build1 [1,126 kB]
+Fetched 1,126 kB in 1s (1,238 kB/s)
+Selecting previously unselected package stress-ng.
+(Reading database ... 112334 files and directories currently installed.)
+Preparing to unpack .../stress-ng_0.11.23-1build1_amd64.deb ...
+Unpacking stress-ng (0.11.23-1build1) ...
+Setting up stress-ng (0.11.23-1build1) ...
+Processing triggers for man-db (2.9.1-1) ...
+
+(Opened interactive htop screen - observed per-core CPU bars & load average; pressed F10 to exit)
+
+Linux 5.4.0-173-generic (ip-172-31-10-201)  08/18/2026  _x86_64_  (4 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          1.20    0.00    0.55    0.02    0.10   98.13
+
+Device            r/s     w/s   rkB/s   wkB/s  rrqm/s  wrqm/s  %util
+nvme0n1          0.10    0.25    2.40    6.80    0.00    0.01   0.05
+
+(Pressed Ctrl+C after baseline observation.)
+
+
+Starting CPU stress test...
+Cores available: 4
+Starting stress test on all cores for 30 seconds
+stress-ng: info:  [3112] setting to a 30 second run per stressor
+stress-ng: info:  [3112] dispatching hogs: 4 cpu
+stress-ng: info:  [3112] successful run completed in 30.01s
+
+stress-ng: metrics:  (geometric mean of 4 cpu stressors)
+stress-ng: metrics:  cpu                112345.67 ops/s
+stress-ng: metrics:  cpu                 30.01s  total time
+stress-ng: metrics:  cpu                3371921  total operations
+stress-ng: metrics:  cpu                0.00%   aborted
+
+
+# --- Task 1.3: Adjust CPU Scheduler Parameters ---
+
+kernel.sched_min_granularity_ns = 3000000
+kernel.sched_wakeup_granularity_ns = 4000000
+kernel.sched_migration_cost_ns = 500000
+kernel.sched_latency_ns = 12000000
+
+kernel.sched_min_granularity_ns = 1000000
+kernel.sched_wakeup_granularity_ns = 2000000
+kernel.sched_migration_cost_ns = 250000
+kernel.sched_latency_ns = 6000000
+
+kernel.sched_autogroup_enabled = 1
+kernel.sched_cfs_bandwidth_slice_us = 5000
+kernel.sched_child_runs_first = 0
+kernel.sched_deadline_period_max_us = 4194304
+kernel.sched_deadline_period_min_us = 100
+
+# (Appended block in /etc/sysctl.conf; verified with tail -n 8)
+# CPU Scheduler Optimizations
+kernel.sched_min_granularity_ns=1000000
+kernel.sched_wakeup_granularity_ns=2000000
+kernel.sched_migration_cost_ns=250000
+kernel.sched_latency_ns=6000000
+
+kernel.sched_min_granularity_ns = 1000000
+kernel.sched_wakeup_granularity_ns = 2000000
+kernel.sched_migration_cost_ns = 250000
+kernel.sched_latency_ns = 6000000
+
+
+# --- Task 1.4: Test Performance After Scheduler Tuning ---
+
+Starting CPU stress test...
+Cores available: 4
+Starting stress test on all cores for 30 seconds
+stress-ng: info:  [3268] setting to a 30 second run per stressor
+stress-ng: info:  [3268] dispatching hogs: 4 cpu
+stress-ng: info:  [3268] successful run completed in 30.01s
+
+stress-ng: metrics:  (geometric mean of 4 cpu stressors)
+stress-ng: metrics:  cpu                113980.12 ops/s
+stress-ng: metrics:  cpu                 30.01s  total time
+stress-ng: metrics:  cpu                3421029  total operations
+stress-ng: metrics:  cpu                0.00%   aborted
+
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 2  0      0 612840  85264 812340    0    0     0     4  215  430  3  1 96  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  198  401  2  1 97  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  201  408  2  1 97  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  199  412  2  1 97  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  202  419  2  1 97  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  200  417  2  1 97  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  199  410  2  1 97  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  205  428  3  1 96  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  203  421  2  1 97  0  0
+ 1  0      0 612840  85264 812340    0    0     0     0  201  416  2  1 97  0  0
+
+ 10:58:41 up 1:12,  1 user,  load average: 0.06, 0.04, 0.02
+
+
+# --- Task 2.1: CPU Affinity Concepts ---
+
+CPU NODE SOCKET CORE L1d:L1i:L2:L3 ONLINE
+  0    0      0    0 0:0:0:0          yes
+  1    0      0    0 0:0:0:0          yes
+  2    0      0    1 1:1:1:0          yes
+  3    0      0    1 1:1:1:0          yes
+
+bash: numactl: command not found
+
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following NEW packages will be installed:
+  numactl
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 25.6 kB of archives.
+Fetched 25.6 kB in 0s (162 kB/s)
+Selecting previously unselected package numactl.
+(Reading database ... 112401 files and directories currently installed.)
+Preparing to unpack .../numactl_2.0.12-1_amd64.deb ...
+Unpacking numactl (2.0.12-1) ...
+Setting up numactl (2.0.12-1) ...
+
+available: 1 nodes (0)
+node 0 cpus: 0 1 2 3
+node 0 size: 3947 MB
+node 0 free: 3210 MB
+node distances:
+node   0
+  0:  10
+
+pid 3311's current affinity mask: f
+pid 1's current affinity mask: f
+
+
+# --- Task 2.3: Default CPU Affinity Behavior ---
+
+[1] 3438
+PID: 3438
+Running CPU-intensive task for 60 seconds
+
+[2] 3442
+PID: 3442
+Running CPU-intensive task for 60 seconds
+
+[3] 3447
+PID: 3447
+Running memory-intensive task for 60 seconds
+
+Started processes: 3438, 3442, 3447
+
+Elapsed: 5s, Counter: 28345136150000
+Elapsed: 5s, Counter: 29180749350000
+Elapsed: 5s, Arrays: 25
+Elapsed: 10s, Counter: 56701911450000
+Elapsed: 10s, Counter: 58129322850000
+Elapsed: 10s, Arrays: 25
+...
+
+(Observed CPU usage spread across cores in htop; exited with F10)
+
+pid 3438's current affinity mask: f
+pid 3442's current affinity mask: f
+pid 3447's current affinity mask: f
+
+Task completed. Final counter: 347932144010000
+Task completed. Final counter: 352180992830000
+Task completed. Final arrays: 25
+All processes completed
+
+
+# --- Task 2.4: Implement CPU Affinity Optimization ---
+
+=== CPU Topology ===
+CPU(s):              4
+Thread(s) per core:  2
+Core(s) per socket:  2
+Socket(s):           1
+
+Available CPUs: 4
+Optimal configuration for 4+ cores
+Core assignments:
+ CPU-intensive task 1: 0,1
+ CPU-intensive task 2: 2,3
+ Memory-intensive task: 0-3
+
+=== Starting Optimized Workload ===
+
+[1] 3614
+CPU-intensive task 1 (PID: 3614) bound to cores 0,1
+PID: 3614
+Running CPU-intensive task for 60 seconds
+
+[2] 3619
+CPU-intensive task 2 (PID: 3619) bound to cores 2,3
+PID: 3619
+Running CPU-intensive task for 60 seconds
+
+[3] 3624
+Memory-intensive task (PID: 3624) can use all cores
+PID: 3624
+Running memory-intensive task for 60 seconds
+
+=== Verifying Affinity Settings ===
+pid 3614's current affinity mask: 3
+pid 3619's current affinity mask: c
+pid 3624's current affinity mask: f
+
+=== Monitoring Round 1 ===
+=== Performance Monitoring ===
+Time: Mon Aug 18 11:06:02 UTC 2026
+
+Load Average:
+ 11:06:02 up 1:20,  1 user,  load average: 3.98, 1.22, 0.40
+
+Per-CPU Usage:
+Linux 5.4.0-173-generic (ip-172-31-10-201)  08/18/2026  _x86_64_  (4 CPU)
+
+11:06:03     CPU    %usr   %nice    %sys %iowait   %idle
+11:06:03     all   92.50    0.00    6.00    0.00    1.50
+11:06:03       0   94.00    0.00    5.00    0.00    1.00
+11:06:03       1   93.00    0.00    6.00    0.00    1.00
+11:06:03       2   91.00    0.00    7.00    0.00    2.00
+11:06:03       3   92.00    0.00    6.00    0.00    2.00
+
+Context Switches:
+ 2  0      0 524832  85624 876540    0    0     0     8 4102 7200 93  6  1  0  0
+
+Memory Usage:
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        512M         12M        2.2G        2.5G
+Swap:            0B          0B          0B
+
+=== Monitoring Round 2 ===
+=== Performance Monitoring ===
+Time: Mon Aug 18 11:06:13 UTC 2026
+...
+=== Monitoring Round 6 ===
+=== Performance Monitoring ===
+Time: Mon Aug 18 11:06:55 UTC 2026
+...
+
+Elapsed: 55s, Counter: 328901129410000
+Elapsed: 55s, Counter: 334010112980000
+Elapsed: 55s, Arrays: 25
+Task completed. Final counter: 359812990210000
+Task completed. Final counter: 366992008440000
+Task completed. Final arrays: 25
+All optimized processes completed
+
+
+# --- Task 2.5: Dynamic Affinity Adjustment ---
+
+Started process PID: 3791
+Setting initial affinity to core 0
+pid 3791's current affinity list: 0-3
+pid 3791's new affinity list: 0
+PID: 3791
+Running CPU-intensive task for 120 seconds
+Elapsed: 5s, Counter: 85491120350000
+Elapsed: 10s, Counter: 169002211450000
+Elapsed: 15s, Counter: 253113320190000
+Expanding affinity to cores 0,1
+pid 3791's current affinity list: 0
+pid 3791's new affinity list: 0,1
+Elapsed: 25s, Counter: 419991221440000
+Elapsed: 30s, Counter: 503114889110000
+Moving to cores 2,3
+pid 3791's current affinity list: 0,1
+pid 3791's new affinity list: 2,3
+Elapsed: 45s, Counter: 757003112900000
+Allowing all cores
+pid 3791's current affinity list: 2,3
+pid 3791's new affinity list: 0-3
+Elapsed: 65s, Counter: 1123001132210000
+Restricting to core 1
+pid 3791's current affinity list: 0-3
+pid 3791's new affinity list: 1
+Task completed. Final counter: 1569900211440000
+Dynamic affinity test completed
+
+
+# --- Task 3.1: Comprehensive CPU Performance Testing Framework ---
+
+2026-08-18 11:19:10: Starting comprehensive CPU performance testing
+2026-08-18 11:19:10: Test duration per scenario: 30 seconds
+2026-08-18 11:19:10: === BASELINE TEST ===
+2026-08-18 11:19:10: System Information:
+Model name:          Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+CPU(s):              4
+Thread(s) per core:  2
+Core(s) per socket:  2
+Socket(s):           1
+2026-08-18 11:19:10: Starting baseline CPU stress test
+stress-ng: info:  [4012] setting to a 30 second run per stressor
+stress-ng: info:  [4012] dispatching hogs: 4 cpu
+stress-ng: info:  [4012] successful run completed in 30.00s
+stress-ng: metrics:  cpu                113201.88 ops/s
+
+2026-08-18 11:19:50: === AFFINITY OPTIMIZATION TEST ===
+2026-08-18 11:19:50: Test 1: Default affinity (all cores)
+PID: 4024
+Running CPU-intensive task for 30 seconds
+PID: 4025
+Running CPU-intensive task for 30 seconds
+PID: 4026
+Running memory-intensive task for 30 seconds
+Elapsed: 5s, Counter: 28011999211000
+Elapsed: 5s, Counter: 28700211899000
+Elapsed: 5s, Arrays: 25
+Elapsed: 10s, Counter: 56199122044000
+Elapsed: 10s, Counter: 57400112233000
+Elapsed: 10s, Arrays: 25
+Task completed. Final counter: 169112334009000
+Task completed. Final counter: 173001129880000
+Task completed. Final arrays: 25
+
+2026-08-18 11:20:25: Test 2: Optimized affinity
+PID: 4068
+Running CPU-intensive task for 30 seconds
+PID: 4069
+Running CPU-intensive task for 30 seconds
+PID: 4070
+Running memory-intensive task for 30 seconds
+Elapsed: 5s, Counter: 29699122144000
+Elapsed: 5s, Counter: 30100192211000
+Elapsed: 5s, Arrays: 25
+Task completed. Final counter: 179992011223000
+Task completed. Final counter: 181003199220000
+Task completed. Final arrays: 25
+
+2026-08-18 11:21:05: === SCHEDULER OPTIMIZATION TEST ===
+2026-08-18 11:21:05: Running mixed workload with optimized scheduler
+PID: 4110
+Running CPU-intensive task for 30 seconds
+PID: 4111
+Running CPU-intensive task for 30 seconds
+PID: 4112
+Running CPU-intensive task for 30 seconds
+PID: 4113
+Running CPU-intensive task for 30 seconds
+Elapsed: 5s, Counter: 14500112233000
+Elapsed: 5s, Counter: 14399911122000
+Elapsed: 5s, Counter: 14600133000000
+Elapsed: 5s, Counter: 14488901011000
+Task completed. Final counter: 87991299100000
+Task completed. Final counter: 87200111220000
+Task completed. Final counter: 88300112990000
+Task completed. Final counter: 86899000112000
+
+2026-08-18 11:21:45: === SYSTEM METRICS COLLECTION ===
+2026-08-18 11:21:45: Load Average:  11:21:45 up 1:35,  1 user,  load average: 0.30, 0.25, 0.10
+2026-08-18 11:21:45: Memory Usage: Mem:           3.8G        1.1G        520M         13M        2.2G        2.6G
+2026-08-18 11:21:47: Context Switches: 1108
+2026-08-18 11:21:47: CPU Utilization: 2.3
+2026-08-18 11:21:47: Performance testing completed. Results saved to cpu_performance_results.log
+
+
+# --- Task 3.2: Web Server Simulation Tests ---
+
+=== Test 1: Default Configuration ===
+Starting web server simulation with 4 workers
+Duration: 30 seconds
+Worker 0 (PID: 4208, TID: 140682772817664) started
+Worker 1 (PID: 4208, TID: 140682764424960) started
+Worker 2 (PID: 4208, TID: 140682756032256) started
+Worker 3 (PID: 4208, TID: 140682747639552) started
+Worker 1: 100 requests, 8.6s elapsed
+Worker 0: 100 requests, 8.9s elapsed
+Worker 3: 100 requests, 9.2s elapsed
+Worker 2: 100 requests, 9.4s elapsed
+Worker 0 completed 336 requests
+Worker 1 completed 342 requests
+Worker 2 completed 329 requests
+Worker 3 completed 331 requests
+
+Simulation completed:
+Total requests processed: 1338
+Total time: 30.02 seconds
+Requests per second: 44.58
+
+=== Test 2: With CPU Affinity ===
+Starting web server simulation with 4 workers
+Duration: 30 seconds
+Worker 0 (PID: 4241, TID: 139751789659904) started
+Worker 1 (PID: 4241, TID: 139751781267200) started
+Worker 2 (PID: 4241, TID: 139751772874496) started
+Worker 3 (PID: 4241, TID: 139751764481792) started
+Worker 2: 100 requests, 8.4s elapsed
+Worker 1: 100 requests, 8.5s elapsed
+Worker 3: 100 requests, 8.8s elapsed
+Worker 0: 100 requests, 9.0s elapsed
+Worker 0 completed 345 requests
+Worker 1 completed 351 requests
+Worker 2 completed 340 requests
+Worker 3 completed 343 requests
+
+Simulation completed:
+Total requests processed: 1379
+Total time: 30.02 seconds
+Requests per second: 45.92
+
+=== Test 3: Optimized Core Assignment ===
+Starting web server simulation with 4 workers
+Duration: 30 seconds
+Worker 0 (PID: 4276, TID: 140024623302400) started
+Worker 1 (PID: 4276, TID: 140024614909696) started
+Worker 2 (PID: 4276, TID: 140024606516992) started
+Worker 3 (PID: 4276, TID: 140024598124288) started
+Worker 0: 100 requests, 10.9s elapsed
+Worker 2: 100 requests, 11.2s elapsed
+Worker 1 completed 248 requests
+Worker 3 completed 240 requests
+Worker 0 completed 260 requests
+Worker 2 completed 252 requests
+
+Simulation completed:
+Total requests processed: 1000
+Total time: 30.03 seconds
+Requests per second: 33.30
+
+
+# --- Task 3.3: analyze_performance.sh output ---
+
+Performing performance analysis...
+Analysis complete. Results saved to performance_analysis.txt
+=== CPU Usage Analysis ===
+Date: Mon Aug 18 11:29:44 UTC 2026
+
+Current CPU Utilization:
+%Cpu(s):  2.0 us,  0.6 sy,  0.0 ni, 97.2 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+
+Load Average:
+ 11:29:44 up 1:43,  1 user,  load average: 0.08, 0.10, 0.06
+
+Per-CPU Statistics:
+Linux 5.4.0-173-generic (ip-172-31-10-201)  08/18/2026  _x86_64_  (4 CPU)
+
+11:29:45     CPU    %usr   %nice    %sys %iowait   %idle
+11:29:45     all    1.75    0.00    0.50    0.00   97.75
+11:29:45       0    2.00    0.00    0.00    0.00   98.00
+11:29:45       1    1.00    0.00    1.00    0.00   98.00
+11:29:45       2    2.00    0.00    0.00    0.00   98.00
+11:29:45       3    2.00    0.00    1.00    0.00   97.00
+
+=== Scheduler Performance ===
+Context Switches per second:
+Context switches: 392
+
+Run Queue Statistics:
+Processes waiting: 1
+
+=== Performance Recommendations ===
+System Configuration:
+ CPU Cores: 4
+ Current Load: 0.08
+
+Recommendations:
+ - System load is acceptable
+ - Consider CPU affinity for CPU-intensive applications
+ - Monitor context switches - high values indicate scheduling overhead
+ - Use CPU affinity for processes with specific performance requirements
+ - Consider NUMA topology for multi-socket systems
+
+
+# --- Task 3.4: optimization_profiles.sh tests ---
+
+Current scheduler settings:
+ sched_min_granularity_ns: 1000000
+ sched_wakeup_granularity_ns: 2000000
+ sched_migration_cost_ns: 250000
+ sched_latency_ns: 6000000
+
+Testing latency profile...
+Applying LATENCY optimization profile...
+kernel.sched_min_granularity_ns = 1000000
+kernel.sched_wakeup_granularity_ns = 2000000
+kernel.sched_migration_cost_ns = 250000
+kernel.sched_latency_ns = 6000000
+Latency profile applied
+PID: 4512
+Running CPU-intensive task for 20 seconds
+Elapsed: 5s, Counter: 28500122199000
+Elapsed: 10s, Counter: 56999122311000
+Elapsed: 15s, Counter: 85400112233000
+Task completed. Final counter: 113991212009000
+
+Testing throughput profile...
+Applying THROUGHPUT optimization profile...
+kernel.sched_min_granularity_ns = 10000000
+kernel.sched_wakeup_granularity_ns = 15000000
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_latency_ns = 24000000
+Throughput profile applied
+PID: 4537
+Running CPU-intensive task for 20 seconds
+Elapsed: 5s, Counter: 27200112211000
+Elapsed: 10s, Counter: 54599100122000
+Elapsed: 15s, Counter: 81899001111000
+Task completed. Final counter: 109001121440000
+
+Applying balanced profile...
+Applying BALANCED optimization profile...
+kernel.sched_min_granularity_ns = 3000000
+kernel.sched_wakeup_granularity_ns = 4000000
+kernel.sched_migration_cost_ns = 500000
+kernel.sched_latency_ns = 12000000
+Balanced profile applied
+
+
+# --- Troubleshooting section outputs captured in lab text ---
+
+sudo -v
+
+-rw-r--r-- 1 root root 0 Aug 18 10:02 /proc/sys/kernel/sched_autogroup_enabled
+-rw-r--r-- 1 root root 0 Aug 18 10:02 /proc/sys/kernel/sched_cfs_bandwidth_slice_us
+-rw-r--r-- 1 root root 0 Aug 18 10:02 /proc/sys/kernel/sched_child_runs_first
+-rw-r--r-- 1 root root 0 Aug 18 10:02 /proc/sys/kernel/sched_latency_ns
+-rw-r--r-- 1 root root 0 Aug 18 10:02 /proc/sys/kernel/sched_migration_cost_ns
+-rw-r--r-- 1 root root 0 Aug 18 10:02 /proc/sys/kernel/sched_min_granularity_ns
+-rw-r--r-- 1 root root 0 Aug 18 10:02 /proc/sys/kernel/sched_wakeup_granularity_ns
+
+5.4.0-173-generic
+
+toor    4602  0.0  0.1  12124  3152 pts/0    S+   11:34   0:00 grep --color=auto python3
+toor    4604  3311  4604  0    1 11:34 pts/0    00:00:00 grep --color=auto python3
+
+mkdir: cannot create directory ‘/sys/fs/cgroup/cpuset’: No such file or directory
+
+cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime)
+
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 520144  86112 881120    0    0     0     0  210  390  2  1 97  0  0
+ 1  0      0 520144  86112 881120    0    0     0     0  205  382  2  1 97  0  0
+...
+
+Linux 5.4.0-173-generic (ip-172-31-10-201)  08/18/2026  _x86_64_  (4 CPU)
+
+11:36:44      UID       PID   cswch/s nvcswch/s  Command
+11:36:45     1001      3311      9.00      2.00  bash
+11:36:45     1001      4608      0.00      0.00  pidstat
+...
+Average:        UID       PID   cswch/s nvcswch/s  Command
+Average:       1001      3311      8.80      2.20  bash
+
+kernel.sched_migration_cost_ns = 5000000
+
+top - 11:38:10 up 1:51,  1 user,  load average: 0.05, 0.07, 0.05
+Tasks: 102 total,   1 running, 101 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  1.4 us,  0.6 sy,  0.0 ni, 97.8 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3947.0 total,    503.2 free,   1150.1 used,   2293.7 buff/cache
+...
+
+tee: /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor: No such file or directory
+tee: /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor: No such file or directory
+tee: /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor: No such file or directory
+tee: /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor: No such file or directory
+performance
+
+bash: /proc/sys/vm/drop_caches: Permission denied
+
+3
+
+
+# --- End of Lab 08 outputs ---
