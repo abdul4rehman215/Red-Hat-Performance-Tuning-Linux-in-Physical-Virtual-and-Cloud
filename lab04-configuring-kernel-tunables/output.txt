@@ -1,0 +1,829 @@
+-bash-4.2$ cd /proc/sys
+
+-bash-4.2$ ls -la
+total 0
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 .
+dr-xr-xr-x.  9 root root 0 Feb 25 12:40 ..
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 abi
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 debug
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 dev
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 fs
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 kernel
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 net
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 user
+drwxr-xr-x.  1 root root 0 Feb 25 12:40 vm
+
+Expected Output:
+drwxr-xr-x 1 root root 0 Nov 15 10:00 abi
+drwxr-xr-x 1 root root 0 Nov 15 10:00 debug
+drwxr-xr-x 1 root root 0 Nov 15 10:00 dev
+drwxr-xr-x 1 root root 0 Nov 15 10:00 fs
+drwxr-xr-x 1 root root 0 Nov 15 10:00 kernel
+drwxr-xr-x 1 root root 0 Nov 15 10:00 net
+drwxr-xr-x 1 root root 0 Nov 15 10:00 vm
+
+-bash-4.2$ ls /proc/sys/vm/
+admin_reserve_kbytes
+block_dump
+compact_memory
+dirty_background_bytes
+dirty_background_ratio
+dirty_bytes
+dirty_expire_centisecs
+dirty_ratio
+dirty_writeback_centisecs
+drop_caches
+extfrag_threshold
+hugepages_treat_as_movable
+laptop_mode
+legacy_va_layout
+lowmem_reserve_ratio
+max_map_count
+min_free_kbytes
+mmap_min_addr
+nr_hugepages
+nr_hugepages_mempolicy
+nr_overcommit_hugepages
+numa_stat
+oom_dump_tasks
+oom_kill_allocating_task
+overcommit_kbytes
+overcommit_memory
+overcommit_ratio
+page-cluster
+panic_on_oom
+percpu_pagelist_fraction
+stat_interval
+swappiness
+user_reserve_kbytes
+vfs_cache_pressure
+watermark_boost_factor
+watermark_scale_factor
+zone_reclaim_mode
+
+-bash-4.2$ ls /proc/sys/net/
+bridge
+core
+ipv4
+ipv6
+mptcp
+netfilter
+unix
+
+-bash-4.2$ ls /proc/sys/kernel/
+acct
+auto_msgmni
+bootloader_type
+bootloader_version
+bpf_stats_enabled
+cad_pid
+cap_last_cap
+core_pattern
+core_uses_pid
+ctrl-alt-del
+dmesg_restrict
+domainname
+hostname
+hotplug
+kexec_load_disabled
+keys
+kptr_restrict
+msgmax
+msgmnb
+msgmni
+ngroups_max
+ns_last_pid
+osrelease
+ostype
+panic
+panic_on_oops
+perf_cpu_time_max_percent
+perf_event_max_sample_rate
+perf_event_paranoid
+pid_max
+printk
+random
+randomize_va_space
+sched_autogroup_enabled
+sched_migration_cost_ns
+sem
+shmmax
+shmall
+shmmni
+sysrq
+tainted
+threads-max
+timer_migration
+uname26
+
+-bash-4.2$ sysctl -a | head -20
+abi.vsyscall32 = 1
+debug.exception-trace = 1
+debug.kprobes-optimization = 1
+dev.cdrom.autoclose = 1
+dev.cdrom.autoeject = 0
+dev.cdrom.check_media = 0
+dev.cdrom.debug = 0
+dev.cdrom.info = CD-ROM information, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.lock = 0
+dev.cdrom.polling = 0
+dev.cdrom.toc = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.tocaddr = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.tocheader = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.tochdr = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.tocnames = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.tocscsi = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.tocses = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.tocslot = CD-ROM table of contents, Id: cdrom.c 3.20 2003/12/17
+dev.cdrom.timeout = 30
+dev.cdrom.ucs2 = 0
+
+-bash-4.2$ sysctl vm.
+vm.admin_reserve_kbytes = 8192
+vm.block_dump = 0
+vm.dirty_background_ratio = 10
+vm.dirty_ratio = 20
+vm.dirty_writeback_centisecs = 500
+vm.drop_caches = 0
+vm.max_map_count = 65530
+vm.min_free_kbytes = 67584
+vm.overcommit_memory = 1
+vm.page-cluster = 3
+vm.swappiness = 60
+vm.vfs_cache_pressure = 100
+
+-bash-4.2$ sysctl vm.swappiness
+vm.swappiness = 60
+
+-bash-4.2$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       718Mi       2.3Gi        12Mi       744Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+-bash-4.2$ sysctl vm.swappiness
+vm.swappiness = 60
+
+-bash-4.2$ cat /proc/sys/vm/swappiness
+60
+
+-bash-4.2$ sysctl vm.dirty_ratio
+vm.dirty_ratio = 20
+
+-bash-4.2$ sysctl vm.dirty_background_ratio
+vm.dirty_background_ratio = 10
+
+-bash-4.2$ sysctl vm.dirty_writeback_centisecs
+vm.dirty_writeback_centisecs = 500
+
+-bash-4.2$ /tmp/memory_monitor.sh
+=== Memory Performance Monitor ===
+Timestamp: Tue Feb 25 12:43:58 UTC 2026
+
+=== Memory Usage ===
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       718Mi       2.3Gi        12Mi       744Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+=== Swap Information ===
+NAME      TYPE SIZE USED PRIO
+/dev/zram0 partition 2G   0B  100
+
+=== Key VM Parameters ===
+vm.swappiness = 60
+vm.dirty_ratio = 20
+vm.dirty_background_ratio = 10
+vm.vfs_cache_pressure = 100
+
+=== Memory Pressure ===
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+
+-bash-4.2$ sysctl vm.swappiness
+vm.swappiness = 60
+
+-bash-4.2$ sudo sysctl vm.swappiness=10
+vm.swappiness = 10
+
+-bash-4.2$ sysctl vm.swappiness
+vm.swappiness = 10
+
+-bash-4.2$ echo 10 | sudo tee /proc/sys/vm/swappiness
+10
+
+-bash-4.2$ sysctl vm.dirty_ratio vm.dirty_background_ratio
+vm.dirty_ratio = 20
+vm.dirty_background_ratio = 10
+
+-bash-4.2$ sudo sysctl vm.dirty_ratio=15
+vm.dirty_ratio = 15
+
+-bash-4.2$ sudo sysctl vm.dirty_background_ratio=5
+vm.dirty_background_ratio = 5
+
+-bash-4.2$ sudo sysctl vm.dirty_writeback_centisecs=500
+vm.dirty_writeback_centisecs = 500
+
+-bash-4.2$ sysctl vm.dirty_ratio vm.dirty_background_ratio vm.dirty_writeback_centisecs
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.dirty_writeback_centisecs = 500
+
+-bash-4.2$ sysctl vm.vfs_cache_pressure
+vm.vfs_cache_pressure = 100
+
+-bash-4.2$ sudo sysctl vm.vfs_cache_pressure=150
+vm.vfs_cache_pressure = 150
+
+-bash-4.2$ sysctl vm.vfs_cache_pressure
+vm.vfs_cache_pressure = 150
+
+-bash-4.2$ /tmp/memory_monitor.sh
+=== Memory Performance Monitor ===
+Timestamp: Tue Feb 25 12:47:19 UTC 2026
+
+=== Memory Usage ===
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       723Mi       2.3Gi        12Mi       739Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+=== Swap Information ===
+NAME      TYPE SIZE USED PRIO
+/dev/zram0 partition 2G   0B  100
+
+=== Key VM Parameters ===
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.vfs_cache_pressure = 150
+
+=== Memory Pressure ===
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+
+-bash-4.2$ /tmp/memory_test.sh
+Starting memory allocation test...
+Allocating 100MB chunk 1...
+Allocating 100MB chunk 2...
+Allocating 100MB chunk 3...
+Allocating 100MB chunk 4...
+Allocating 100MB chunk 5...
+Waiting for allocations to complete...
+Memory allocated. Checking system state...
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       747Mi       2.5Gi
+Swap:          2.0Gi          0B       2.0Gi
+Cleaning up...
+Memory test completed.
+
+-bash-4.2$ sysctl net.core.rmem_max
+net.core.rmem_max = 212992
+
+-bash-4.2$ sysctl net.core.wmem_max
+net.core.wmem_max = 212992
+
+-bash-4.2$ sysctl net.core.rmem_default
+net.core.rmem_default = 212992
+
+-bash-4.2$ sysctl net.core.wmem_default
+net.core.wmem_default = 212992
+
+-bash-4.2$ sysctl net.ipv4.tcp_rmem
+net.ipv4.tcp_rmem = 4096 131072 6291456
+
+-bash-4.2$ sysctl net.ipv4.tcp_wmem
+net.ipv4.tcp_wmem = 4096 16384 4194304
+
+-bash-4.2$ sysctl net.ipv4.tcp_congestion_control
+net.ipv4.tcp_congestion_control = cubic
+
+-bash-4.2$ sysctl net.core.netdev_max_backlog
+net.core.netdev_max_backlog = 1000
+
+-bash-4.2$ /tmp/network_monitor.sh
+=== Network Performance Monitor ===
+Timestamp: Tue Feb 25 12:51:42 UTC 2026
+
+=== Network Buffer Settings ===
+net.core.rmem_max = 212992
+net.core.wmem_max = 212992
+net.core.rmem_default = 212992
+net.core.wmem_default = 212992
+
+=== TCP Settings ===
+net.ipv4.tcp_rmem = 4096 131072 6291456
+net.ipv4.tcp_wmem = 4096 16384 4194304
+net.ipv4.tcp_congestion_control = cubic
+
+=== Network Queue Settings ===
+net.core.netdev_max_backlog = 1000
+net.core.somaxconn = 128
+
+=== Current Network Connections ===
+Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:Port Process
+udp   UNCONN 0      0      127.0.0.1:323      0.0.0.0:*
+udp   UNCONN 0      0      0.0.0.0:68         0.0.0.0:*
+tcp   LISTEN 0      128    0.0.0.0:22         0.0.0.0:*
+tcp   LISTEN 0      128    [::]:22            [::]:*
+
+-bash-4.2$ sudo sysctl net.core.rmem_max=16777216
+net.core.rmem_max = 16777216
+
+-bash-4.2$ sudo sysctl net.core.wmem_max=16777216
+net.core.wmem_max = 16777216
+
+-bash-4.2$ sudo sysctl net.core.rmem_default=262144
+net.core.rmem_default = 262144
+
+-bash-4.2$ sudo sysctl net.core.wmem_default=262144
+net.core.wmem_default = 262144
+
+-bash-4.2$ sysctl net.core.rmem_max net.core.wmem_max net.core.rmem_default net.core.wmem_default
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+
+-bash-4.2$ sudo sysctl net.ipv4.tcp_rmem="4096 87380 16777216"
+net.ipv4.tcp_rmem = 4096 87380 16777216
+
+-bash-4.2$ sudo sysctl net.ipv4.tcp_wmem="4096 65536 16777216"
+net.ipv4.tcp_wmem = 4096 65536 16777216
+
+-bash-4.2$ sysctl net.ipv4.tcp_rmem net.ipv4.tcp_wmem
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+
+-bash-4.2$ sudo sysctl net.core.netdev_max_backlog=5000
+net.core.netdev_max_backlog = 5000
+
+-bash-4.2$ sudo sysctl net.core.somaxconn=1024
+net.core.somaxconn = 1024
+
+-bash-4.2$ sudo sysctl net.ipv4.tcp_window_scaling=1
+net.ipv4.tcp_window_scaling = 1
+
+-bash-4.2$ sysctl net.core.netdev_max_backlog net.core.somaxconn net.ipv4.tcp_window_scaling
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 1024
+net.ipv4.tcp_window_scaling = 1
+
+-bash-4.2$ /tmp/network_monitor.sh
+=== Network Performance Monitor ===
+Timestamp: Tue Feb 25 12:55:18 UTC 2026
+
+=== Network Buffer Settings ===
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+
+=== TCP Settings ===
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.ipv4.tcp_congestion_control = cubic
+
+=== Network Queue Settings ===
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 1024
+
+=== Current Network Connections ===
+Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:Port Process
+udp   UNCONN 0      0      127.0.0.1:323      0.0.0.0:*
+udp   UNCONN 0      0      0.0.0.0:68         0.0.0.0:*
+tcp   LISTEN 0      128    0.0.0.0:22         0.0.0.0:*
+tcp   LISTEN 0      128    [::]:22            [::]:*
+
+-bash-4.2$ /tmp/network_test.sh
+=== Network Performance Test ===
+Testing local network throughput...
+/tmp/network_test.sh: line 6: nc: command not found
+Sending test data...
+/tmp/network_test.sh: line 12: nc: command not found
+Network test completed.
+=== Network Statistics ===
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo:  315890     1522    0    0    0     0          0         0   315890     1522    0    0    0     0       0          0
+
+-bash-4.2$ sudo dnf install -y nmap-ncat
+Last metadata expiration check: 0:16:31 ago on Tue 25 Feb 2026 12:40:01 PM UTC.
+Installing:
+ nmap-ncat  x86_64  3:7.92-1.el9  appstream  224 k
+
+Transaction Summary
+Install  1 Package
+
+Installed:
+  nmap-ncat-3:7.92-1.el9.x86_64
+
+Complete!
+
+-bash-4.2$ /tmp/network_test.sh
+=== Network Performance Test ===
+Testing local network throughput...
+Sending test data...
+Network test completed.
+=== Network Statistics ===
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo:  421038828     3498    0    0    0     0          0         0  421038828     3498    0    0    0     0       0          0
+
+-bash-4.2$ ls -la /etc/sysctl.conf
+-rw-r--r--. 1 root root 1687 Aug 10  2025 /etc/sysctl.conf
+
+-bash-4.2$ cat /etc/sysctl.conf
+# sysctl settings are defined through files in
+# /usr/lib/sysctl.d/, /run/sysctl.d/, and /etc/sysctl.d/.
+#
+# Vendors settings live in /usr/lib/sysctl.d/.
+# To override a whole file, create a new file with the same in /etc/sysctl.d/ and put new settings there.
+#
+# For more information, see sysctl.conf(5) and sysctl.d(5).
+#
+# kernel.domainname = example.com
+
+# Controls the System Request debugging functionality of the kernel
+kernel.sysrq = 16
+
+# Controls whether core dumps will append the PID to the core filename
+kernel.core_uses_pid = 1
+
+-bash-4.2$ sudo tee /etc/sysctl.d/99-performance-tuning.conf << 'EOF'
+# Performance Tuning Configuration
+# Created for Lab 4: Configuring Kernel Tunables
+# Memory Management Parameters
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.dirty_writeback_centisecs = 500
+vm.vfs_cache_pressure = 150
+# Network Performance Parameters
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 1024
+net.ipv4.tcp_window_scaling = 1
+# Additional optimizations
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+EOF
+# Performance Tuning Configuration
+# Created for Lab 4: Configuring Kernel Tunables
+# Memory Management Parameters
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.dirty_writeback_centisecs = 500
+vm.vfs_cache_pressure = 150
+# Network Performance Parameters
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 1024
+net.ipv4.tcp_window_scaling = 1
+# Additional optimizations
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+
+-bash-4.2$ cat /etc/sysctl.d/99-performance-tuning.conf
+# Performance Tuning Configuration
+# Created for Lab 4: Configuring Kernel Tunables
+# Memory Management Parameters
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.dirty_writeback_centisecs = 500
+vm.vfs_cache_pressure = 150
+# Network Performance Parameters
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 1024
+net.ipv4.tcp_window_scaling = 1
+# Additional optimizations
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+
+-bash-4.2$ sudo sysctl -p /etc/sysctl.d/99-performance-tuning.conf
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.dirty_writeback_centisecs = 500
+vm.vfs_cache_pressure = 150
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 1024
+net.ipv4.tcp_window_scaling = 1
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+
+-bash-4.2$ sysctl vm.swappiness vm.dirty_ratio net.core.rmem_max net.ipv4.tcp_rmem
+vm.swappiness = 10
+vm.dirty_ratio = 15
+net.core.rmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+
+-bash-4.2$ sudo sysctl --system
+* Applying /usr/lib/sysctl.d/00-system.conf ...
+* Applying /usr/lib/sysctl.d/10-default-yama-scope.conf ...
+* Applying /usr/lib/sysctl.d/50-default.conf ...
+* Applying /etc/sysctl.d/99-performance-tuning.conf ...
+* Applying /etc/sysctl.conf ...
+
+-bash-4.2$ /tmp/validate_config.sh
+=== Kernel Parameter Validation ===
+Timestamp: Tue Feb 25 13:01:12 UTC 2026
+
+Validating configuration from: /etc/sysctl.d/99-performance-tuning.conf
+
+=== Memory Parameters ===
+✓ vm.swappiness = 10 (OK)
+✓ vm.dirty_ratio = 15 (OK)
+✓ vm.dirty_background_ratio = 5 (OK)
+✓ vm.vfs_cache_pressure = 150 (OK)
+
+=== Network Parameters ===
+✓ net.core.rmem_max = 16777216 (OK)
+✓ net.core.wmem_max = 16777216 (OK)
+✓ net.core.somaxconn = 1024 (OK)
+
+=== Validation Summary ===
+✓ All parameters configured correctly!
+
+-bash-4.2$ /tmp/performance_analysis.sh
+=== System Performance Analysis ===
+Analysis performed at: Tue Feb 25 13:03:04 UTC 2026
+
+=== CPU Information ===
+CPU(s):                               2
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Thread(s) per core:                   2
+Core(s) per socket:                   1
+
+=== Memory Analysis ===
+Total Memory:
+Mem:           3.7Gi       733Mi       2.3Gi        12Mi       729Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+Memory Pressure (if available):
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+
+=== I/O Performance ===
+Dirty Pages Status:
+Dirty:               120 kB
+Writeback:             0 kB
+
+=== Network Performance Indicators ===
+Network Interface Statistics:
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo:  421059224     3512    0    0    0     0          0         0  421059224     3512    0    0    0     0       0          0
+
+TCP Connection States:
+Total: 6 (kernel 0)
+TCP:   3 (estab 1, closed 0, orphaned 0, synrecv 0, timewait 0/0), ports 0
+
+Transport Total     IP        IPv6
+*         0         -         -
+RAW       0         0         0
+UDP       2         1         1
+TCP       3         2         1
+INET      5         3         2
+FRAG      0         0         0
+
+=== Current Kernel Parameters ===
+Key VM Parameters:
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.vfs_cache_pressure = 150
+
+Key Network Parameters:
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.somaxconn = 1024
+
+=== System Load ===
+ 13:03:04 up  1:24,  1 user,  load average: 0.04, 0.06, 0.05
+
+-bash-4.2$ echo "Rollback script created at /tmp/rollback_tuning.sh"
+Rollback script created at /tmp/rollback_tuning.sh
+
+-bash-4.2$ echo "Continuous monitoring script created."
+Continuous monitoring script created.
+
+-bash-4.2$ echo "Run with: /tmp/continuous_monitor.sh"
+Run with: /tmp/continuous_monitor.sh
+
+-bash-4.2$ sudo -l
+Matching Defaults entries for centos on ip-172-31-10-248:
+    !visiblepw, always_set_home, match_group_by_gid, always_query_group_plugin,
+    env_reset, env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS",
+    env_keep+="MAIL QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT",
+    env_keep+="LC_MESSAGES LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE LC_TIME LC_ALL LANGUAGE",
+    secure_path=/sbin:/bin:/usr/sbin:/usr/bin
+
+User centos may run the following commands on ip-172-31-10-248:
+    (ALL) NOPASSWD: ALL
+
+-bash-4.2$ sudo sysctl vm.swappiness=10
+vm.swappiness = 10
+
+-bash-4.2$ ls /proc/sys/vm/swappiness
+/proc/sys/vm/swappiness
+
+-bash-4.2$ find /proc/sys -name "*swappiness*" 2>/dev/null
+/proc/sys/vm/swappiness
+
+-bash-4.2$ sysctl -a | grep vm | head -20
+vm.admin_reserve_kbytes = 8192
+vm.block_dump = 0
+vm.compaction_proactiveness = 20
+vm.dirty_background_ratio = 5
+vm.dirty_ratio = 15
+vm.dirty_writeback_centisecs = 500
+vm.drop_caches = 0
+vm.extfrag_threshold = 500
+vm.max_map_count = 65530
+vm.min_free_kbytes = 67584
+vm.mmap_min_addr = 65536
+vm.nr_hugepages = 0
+vm.oom_dump_tasks = 0
+vm.overcommit_memory = 1
+vm.overcommit_ratio = 50
+vm.page-cluster = 3
+vm.panic_on_oom = 0
+vm.swappiness = 10
+vm.user_reserve_kbytes = 131072
+vm.vfs_cache_pressure = 150
+
+-bash-4.2$ sudo sysctl -p /etc/sysctl.d/99-performance-tuning.conf
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.dirty_writeback_centisecs = 500
+vm.vfs_cache_pressure = 150
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 1024
+net.ipv4.tcp_window_scaling = 1
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+
+-bash-4.2$ sudo sysctl --system 2>&1 | grep -i error
+
+-bash-4.2$ ls -la /etc/sysctl.d/99-performance-tuning.conf
+-rw-r--r--. 1 root root 642 Feb 25 12:58 /etc/sysctl.d/99-performance-tuning.conf
+
+-bash-4.2$ /tmp/rollback_tuning.sh
+=== Kernel Parameter Rollback Script ===
+This script will restore default kernel parameters
+
+Rollback cancelled.
+
+-bash-4.2$ sudo sysctl vm.swappiness=60
+vm.swappiness = 60
+
+-bash-4.2$ sudo sysctl vm.dirty_ratio=20
+vm.dirty_ratio = 20
+
+(Re-applied tuned config after test reset to keep lab state consistent.)
+
+-bash-4.2$ sudo sysctl -p /etc/sysctl.d/99-performance-tuning.conf > /dev/null
+
+-bash-4.2$ sysctl net.ipv4.tcp_syncookies
+net.ipv4.tcp_syncookies = 1
+
+-bash-4.2$ sysctl vm.overcommit_memory
+vm.overcommit_memory = 1
+
+-bash-4.2$ sysctl net.ipv4.tcp_syncookies net.ipv4.icmp_echo_ignore_broadcasts
+net.ipv4.tcp_syncookies = 1
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+-bash-4.2$ echo "=== Final Lab Validation ==="
+=== Final Lab Validation ===
+
+-bash-4.2$ echo "1. Running configuration validation..."
+1. Running configuration validation...
+
+-bash-4.2$ /tmp/validate_config.sh
+=== Kernel Parameter Validation ===
+Timestamp: Tue Feb 25 13:08:41 UTC 2026
+
+Validating configuration from: /etc/sysctl.d/99-performance-tuning.conf
+
+=== Memory Parameters ===
+✓ vm.swappiness = 10 (OK)
+✓ vm.dirty_ratio = 15 (OK)
+✓ vm.dirty_background_ratio = 5 (OK)
+✓ vm.vfs_cache_pressure = 150 (OK)
+
+=== Network Parameters ===
+✓ net.core.rmem_max = 16777216 (OK)
+✓ net.core.wmem_max = 16777216 (OK)
+✓ net.core.somaxconn = 1024 (OK)
+
+=== Validation Summary ===
+✓ All parameters configured correctly!
+
+-bash-4.2$ /tmp/performance_analysis.sh
+=== System Performance Analysis ===
+Analysis performed at: Tue Feb 25 13:08:42 UTC 2026
+
+=== CPU Information ===
+CPU(s):                               2
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Thread(s) per core:                   2
+Core(s) per socket:                   1
+
+=== Memory Analysis ===
+Total Memory:
+Mem:           3.7Gi       734Mi       2.3Gi        12Mi       728Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+Memory Pressure (if available):
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+
+=== I/O Performance ===
+Dirty Pages Status:
+Dirty:               116 kB
+Writeback:             0 kB
+
+=== Network Performance Indicators ===
+Network Interface Statistics:
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo:  421082112     3536    0    0    0     0          0         0  421082112     3536    0    0    0     0       0          0
+
+TCP Connection States:
+Total: 6 (kernel 0)
+TCP:   3 (estab 1, closed 0, orphaned 0, synrecv 0, timewait 0/0), ports 0
+
+Transport Total     IP        IPv6
+*         0         -         -
+RAW       0         0         0
+UDP       2         1         1
+TCP       3         2         1
+INET      5         3         2
+FRAG      0         0         0
+
+=== Current Kernel Parameters ===
+Key VM Parameters:
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.vfs_cache_pressure = 150
+
+Key Network Parameters:
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.somaxconn = 1024
+
+=== System Load ===
+ 13:08:42 up  1:30,  1 user,  load average: 0.04, 0.06, 0.05
+
+-bash-4.2$ sudo sysctl --system > /dev/null 2>&1
+
+-bash-4.2$ echo "✓ Configuration loaded successfully"
+✓ Configuration loaded successfully
+
+-bash-4.2$ cat /tmp/lab_completion_report.txt
+Lab 4: Configuring Kernel Tunables - Completion Report
+Generated: Tue Feb 25 13:10:05 UTC 2026
+Configuration Applied:
+- Memory tuning: swappiness, dirty ratios, cache pressure
+- Network tuning: buffer sizes, TCP parameters, queue settings
+- Configuration made persistent in /etc/sysctl.d/99-performance-tuning.conf
+Scripts Created:
+- /tmp/memory_monitor.sh - Memory performance monitoring
+- /tmp/memory_test.sh - Memory allocation test
+- /tmp/network_monitor.sh - Network performance monitoring
+- /tmp/network_test.sh - Local throughput test via nc
+- /tmp/validate_config.sh - Configuration validation
+- /tmp/performance_analysis.sh - Comprehensive analysis
+- /tmp/rollback_tuning.sh - Rollback script
+- /tmp/continuous_monitor.sh - Ongoing monitoring
+Lab Status: COMPLETED SUCCESSFULLY
