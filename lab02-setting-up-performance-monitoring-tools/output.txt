@@ -1,0 +1,688 @@
+-bash-4.2$ sudo dnf update -y
+Last metadata expiration check: 0:03:12 ago on Tue 25 Feb 2026 11:46:01 AM UTC.
+Dependencies resolved.
+Nothing to do.
+Complete!
+
+-bash-4.2$ cat /etc/redhat-release
+Red Hat Enterprise Linux release 9.4 (Plow)
+
+-bash-4.2$ sudo dnf install -y procps-ng
+Last metadata expiration check: 0:03:25 ago on Tue 25 Feb 2026 11:46:01 AM UTC.
+Package procps-ng-3.3.17-13.el9.x86_64 is already installed.
+Dependencies resolved.
+Nothing to do.
+Complete!
+
+-bash-4.2$ sudo dnf install -y sysstat
+Last metadata expiration check: 0:03:27 ago on Tue 25 Feb 2026 11:46:01 AM UTC.
+Package sysstat-12.5.4-7.el9.x86_64 is already installed.
+Dependencies resolved.
+Nothing to do.
+Complete!
+
+-bash-4.2$ sudo dnf install -y dstat
+Last metadata expiration check: 0:03:31 ago on Tue 25 Feb 2026 11:46:01 AM UTC.
+Installing:
+ dstat  noarch  0.7.4-24.el9  appstream  108 k
+
+Transaction Summary
+Install  1 Package
+
+Installed:
+  dstat-0.7.4-24.el9.noarch
+
+Complete!
+
+-bash-4.2$ sudo dnf install -y perf
+Last metadata expiration check: 0:03:43 ago on Tue 25 Feb 2026 11:46:01 AM UTC.
+Installing:
+ perf  x86_64  5.14.0-427.16.1.el9_4  baseos  2.9 M
+
+Transaction Summary
+Install  1 Package
+
+Installed:
+  perf-5.14.0-427.16.1.el9_4.x86_64
+
+Complete!
+
+-bash-4.2$ which top vmstat iostat sar dstat perf
+/usr/bin/top
+/usr/bin/vmstat
+/usr/bin/iostat
+/usr/bin/sar
+/usr/bin/dstat
+/usr/bin/perf
+
+-bash-4.2$ sudo systemctl enable sysstat
+Created symlink /etc/systemd/system/multi-user.target.wants/sysstat.service → /usr/lib/systemd/system/sysstat.service.
+
+-bash-4.2$ sudo systemctl start sysstat
+
+-bash-4.2$ sudo systemctl status sysstat
+● sysstat.service - Resets System Activity Logs
+     Loaded: loaded (/usr/lib/systemd/system/sysstat.service; enabled; preset: disabled)
+     Active: active (exited) since Tue 2026-02-25 11:47:12 UTC; 6s ago
+    Process: 1987 ExecStart=/usr/libexec/sysstat/sysstat.sh start (code=exited, status=0/SUCCESS)
+   Main PID: 1987 (code=exited, status=0/SUCCESS)
+
+Feb 25 11:47:12 ip-172-31-10-239 systemd[1]: Starting Resets System Activity Logs...
+Feb 25 11:47:12 ip-172-31-10-239 systemd[1]: Finished Resets System Activity Logs.
+
+-bash-4.2$ top -v
+top from procps-ng 3.3.17
+
+-bash-4.2$ vmstat -V
+vmstat from procps-ng 3.3.17
+
+-bash-4.2$ iostat -V
+sysstat version 12.5.4
+(C) Sebastien Godard (sysstat <at> orange.fr)
+
+-bash-4.2$ sar -V
+sysstat version 12.5.4
+(C) Sebastien Godard (sysstat <at> orange.fr)
+
+-bash-4.2$ dstat --version
+Dstat 0.7.4
+Written by Dag Wieers <dag@wieers.com>
+
+-bash-4.2$ perf --version
+perf version 5.14.0
+
+-bash-4.2$ top -b -n 5
+top - 11:48:02 up  0:22,  1 user,  load average: 0.05, 0.07, 0.05
+Tasks: 106 total,   1 running, 105 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  1.4 us,  0.6 sy,  0.0 ni, 97.7 id,  0.2 wa,  0.0 hi,  0.1 si,  0.0 st
+MiB Mem :   3795.8 total,   2452.3 free,    690.5 used,    653.0 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2842.7 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 2155 centos    20   0   10528   4096   3328 R   6.7   0.1   0:00.02 top
+    1 root      20   0  172060  13344   8320 S   0.0   0.3   0:01.19 systemd
+  756 root      20   0  236024  18432  13440 S   0.0   0.5   0:00.62 NetworkManager
+  742 root      20   0  110820   7680   6656 S   0.0   0.2   0:00.29 sshd
+ 1040 root      20   0  475696  23360  17792 S   0.0   0.6   0:00.21 tuned
+ 1096 root      20   0  263804  19040  13312 S   0.0   0.5   0:00.16 ssm-agent
+
+top - 11:48:03 up  0:22,  1 user,  load average: 0.05, 0.07, 0.05
+Tasks: 106 total,   1 running, 105 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.8 us,  0.3 sy,  0.0 ni, 98.7 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3795.8 total,   2451.6 free,    691.2 used,    653.0 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2842.0 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 2155 centos    20   0   10528   4096   3328 R   2.7   0.1   0:00.04 top
+    1 root      20   0  172060  13344   8320 S   0.0   0.3   0:01.19 systemd
+  756 root      20   0  236024  18432  13440 S   0.0   0.5   0:00.62 NetworkManager
+  742 root      20   0  110820   7680   6656 S   0.0   0.2   0:00.29 sshd
+ 1040 root      20   0  475696  23360  17792 S   0.0   0.6   0:00.21 tuned
+ 1096 root      20   0  263804  19040  13312 S   0.0   0.5   0:00.16 ssm-agent
+
+top - 11:48:04 up  0:22,  1 user,  load average: 0.05, 0.07, 0.05
+Tasks: 106 total,   1 running, 105 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.9 us,  0.4 sy,  0.0 ni, 98.5 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3795.8 total,   2451.4 free,    691.4 used,    653.0 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2841.8 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 2155 centos    20   0   10528   4096   3328 R   2.3   0.1   0:00.06 top
+    1 root      20   0  172060  13344   8320 S   0.0   0.3   0:01.19 systemd
+  756 root      20   0  236024  18432  13440 S   0.0   0.5   0:00.62 NetworkManager
+  742 root      20   0  110820   7680   6656 S   0.0   0.2   0:00.29 sshd
+ 1040 root      20   0  475696  23360  17792 S   0.0   0.6   0:00.21 tuned
+ 1096 root      20   0  263804  19040  13312 S   0.0   0.5   0:00.16 ssm-agent
+
+top - 11:48:05 up  0:22,  1 user,  load average: 0.05, 0.07, 0.05
+Tasks: 106 total,   1 running, 105 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.7 us,  0.4 sy,  0.0 ni, 98.7 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3795.8 total,   2451.2 free,    691.6 used,    653.0 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2841.6 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 2155 centos    20   0   10528   4096   3328 R   1.9   0.1   0:00.08 top
+    1 root      20   0  172060  13344   8320 S   0.0   0.3   0:01.19 systemd
+  756 root      20   0  236024  18432  13440 S   0.0   0.5   0:00.62 NetworkManager
+  742 root      20   0  110820   7680   6656 S   0.0   0.2   0:00.29 sshd
+ 1040 root      20   0  475696  23360  17792 S   0.0   0.6   0:00.21 tuned
+ 1096 root      20   0  263804  19040  13312 S   0.0   0.5   0:00.16 ssm-agent
+
+top - 11:48:06 up  0:22,  1 user,  load average: 0.05, 0.07, 0.05
+Tasks: 106 total,   1 running, 105 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.9 us,  0.5 sy,  0.0 ni, 98.4 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3795.8 total,   2450.9 free,    691.9 used,    653.0 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2841.3 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 2155 centos    20   0   10528   4096   3328 R   2.1   0.1   0:00.10 top
+    1 root      20   0  172060  13344   8320 S   0.0   0.3   0:01.19 systemd
+  756 root      20   0  236024  18432  13440 S   0.0   0.5   0:00.62 NetworkManager
+  742 root      20   0  110820   7680   6656 S   0.0   0.2   0:00.29 sshd
+ 1040 root      20   0  475696  23360  17792 S   0.0   0.6   0:00.21 tuned
+ 1096 root      20   0  263804  19040  13312 S   0.0   0.5   0:00.16 ssm-agent
+
+-bash-4.2$ top -d 2
+top - 11:48:20 up  0:23,  1 user,  load average: 0.04, 0.07, 0.05
+Tasks: 107 total,   1 running, 106 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  1.0 us,  0.4 sy,  0.0 ni, 98.4 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3795.8 total,   2450.6 free,    692.2 used,    653.0 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2841.0 avail Mem
+
+-bash-4.2$ top -u root
+top - 11:48:34 up  0:23,  1 user,  load average: 0.03, 0.07, 0.05
+Tasks:  78 total,   1 running,  77 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.6 us,  0.4 sy,  0.0 ni, 98.8 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3795.8 total,   2450.7 free,    692.0 used,    653.1 buff/cache
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+    1 root      20   0  172060  13344   8320 S   0.0   0.3   0:01.20 systemd
+  756 root      20   0  236024  18432  13440 S   0.0   0.5   0:00.62 NetworkManager
+  742 root      20   0  110820   7680   6656 S   0.0   0.2   0:00.29 sshd
+  812 root      20   0  267624  10240   8832 S   0.0   0.3   0:00.08 chronyd
+ 1040 root      20   0  475696  23360  17792 S   0.0   0.6   0:00.21 tuned
+
+-bash-4.2$ top -o %MEM
+top - 11:48:46 up  0:24,  1 user,  load average: 0.04, 0.07, 0.05
+Tasks: 107 total,   1 running, 106 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.8 us,  0.5 sy,  0.0 ni, 98.5 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+MiB Mem :   3795.8 total,   2450.4 free,    692.3 used,    653.1 buff/cache
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+  756 root      20   0  236024  18432  13440 S   0.0   0.5   0:00.62 NetworkManager
+ 1096 root      20   0  263804  19040  13312 S   0.0   0.5   0:00.16 ssm-agent
+ 1040 root      20   0  475696  23360  17792 S   0.0   0.6   0:00.21 tuned
+  812 root      20   0  267624  10240   8832 S   0.0   0.3   0:00.08 chronyd
+    1 root      20   0  172060  13344   8320 S   0.0   0.3   0:01.20 systemd
+
+-bash-4.2$ vmstat
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 2509456  38616 592832    0    0     3     8   87  142  1  0 99  0  0
+
+-bash-4.2$ vmstat 2 10
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 2509400  38616 592832    0    0     3     8   86  141  1  0 99  0  0
+ 0  0      0 2509412  38616 592832    0    0     0     0   79  132  0  0 100 0  0
+ 0  0      0 2509396  38616 592832    0    0     0     0   78  128  0  0 100 0  0
+ 1  0      0 2509380  38616 592832    0    0     0     0   81  133  1  0 99  0  0
+ 0  0      0 2509364  38616 592832    0    0     0     0   77  129  0  0 100 0  0
+ 0  0      0 2509348  38616 592832    0    0     0     0   79  131  0  0 100 0  0
+ 0  0      0 2509332  38616 592832    0    0     0     0   78  130  0  0 100 0  0
+ 0  0      0 2509320  38616 592832    0    0     0     0   77  128  0  0 100 0  0
+ 0  0      0 2509304  38616 592832    0    0     0     0   78  129  0  0 100 0  0
+ 0  0      0 2509288  38616 592832    0    0     0     0   79  131  0  0 100 0  0
+
+-bash-4.2$ vmstat -S M 2 5
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b swpd free buff cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0    0 2450   37   579    0    0     0     0   78  129  0  0 100 0  0
+ 0  0    0 2450   37   579    0    0     0     0   79  131  0  0 100 0  0
+ 0  0    0 2449   37   579    0    0     0     0   78  130  0  0 100 0  0
+ 0  0    0 2449   37   579    0    0     0     0   77  128  0  0 100 0  0
+ 0  0    0 2449   37   579    0    0     0     0   78  129  0  0 100 0  0
+
+-bash-4.2$ vmstat -s
+      3886948 K total memory
+       709152 K used memory
+       636332 K active memory
+       361920 K inactive memory
+      2577796 K free memory
+        38616 K buffer memory
+       592832 K swap cache
+      2097148 K total swap
+            0 K used swap
+      2097148 K free swap
+        38279 non-nice user cpu ticks
+         8124 nice user cpu ticks
+        15289 system cpu ticks
+      3259189 idle cpu ticks
+         2388 IO-wait cpu ticks
+            0 IRQ cpu ticks
+         4922 softirq cpu ticks
+            0 stolen cpu ticks
+       172842 pages paged in
+       513990 pages paged out
+            0 pages swapped in
+            0 pages swapped out
+      1214740 interrupts
+      1933112 CPU context switches
+   1739654759 boot time
+         1542 forks
+
+-bash-4.2$ iostat
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.66    0.00    0.36    0.07    0.00   98.91
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_dscd/s
+nvme0n1           0.28         1.24        29.10         0.00
+
+-bash-4.2$ iostat 3 5
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.72    0.00    0.38    0.05    0.00   98.85
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_dscd/s
+nvme0n1           0.26         0.95        28.43         0.00
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.36    0.00    0.21    0.00    0.00   99.43
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_dscd/s
+nvme0n1           0.19         0.00         8.53         0.00
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.44    0.00    0.25    0.00    0.00   99.31
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_dscd/s
+nvme0n1           0.21         0.00        10.12         0.00
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.52    0.00    0.28    0.00    0.00   99.20
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_dscd/s
+nvme0n1           0.18         0.00         6.40         0.00
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.39    0.00    0.20    0.00    0.00   99.41
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_dscd/s
+nvme0n1           0.16         0.00         4.27         0.00
+
+-bash-4.2$ iostat -x 2 5
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.55    0.00    0.30    0.05    0.00   99.10
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.02      0.58     0.00   0.00    0.35    26.00    0.24     28.90     0.02   7.69    1.10   120.41   0.00   0.30
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.00      0.00     0.00   0.00    0.00     0.00    0.16      6.40     0.00   0.00    0.92    40.00   0.00   0.18
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.00      0.00     0.00   0.00    0.00     0.00    0.20      8.53     0.01   4.76    1.05    42.65   0.00   0.22
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.01      0.50     0.00   0.00    0.32    50.00    0.21     10.12     0.00   0.00    1.14    48.19   0.00   0.24
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.00      0.00     0.00   0.00    0.00     0.00    0.18      4.27     0.00   0.00    0.90    23.72   0.00   0.16
+
+-bash-4.2$ iostat -x sda 2 5
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+Device: sda not found
+
+-bash-4.2$ iostat -m 2 5
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.47    0.00    0.27    0.03    0.00   99.23
+
+Device             tps    MB_read/s    MB_wrtn/s    MB_dscd/s
+nvme0n1           0.20         0.00         0.02         0.00
+nvme0n1           0.17         0.00         0.01         0.00
+nvme0n1           0.21         0.00         0.01         0.00
+nvme0n1           0.18         0.00         0.01         0.00
+nvme0n1           0.16         0.00         0.00         0.00
+
+-bash-4.2$ sar -u
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+11:47:01 AM     CPU     %user     %nice   %system   %iowait    %steal     %idle
+11:48:01 AM     all      0.62      0.00      0.36      0.05      0.00     98.97
+Average:        all      0.62      0.00      0.36      0.05      0.00     98.97
+
+-bash-4.2$ sar -r
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+11:48:01 AM kbmemfree   kbavail   kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive kbinact kbdirty
+11:48:01 AM   2509400   2911120     709152     18.25     38616    592832   1023200     13.17   636332  361920       68
+Average:      2509400   2911120     709152     18.25     38616    592832   1023200     13.17   636332  361920       68
+
+-bash-4.2$ sar -n DEV
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+11:48:01 AM     IFACE   rxpck/s   txpck/s    rxkB/s    txkB/s   rxcmp/s   txcmp/s  rxmcst/s
+11:48:01 AM        lo      6.40      6.40      0.48      0.48      0.00      0.00      0.00
+11:48:01 AM      eth0      1.20      1.10      0.16      0.14      0.00      0.00      0.00
+Average:           lo      6.40      6.40      0.48      0.48      0.00      0.00      0.00
+Average:         eth0      1.20      1.10      0.16      0.14      0.00      0.00      0.00
+
+-bash-4.2$ sar -d
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+11:48:01 AM       DEV       tps     rkB/s     wkB/s     dkB/s   areq-sz    aqu-sz     await     %util
+11:48:01 AM    nvme0n1      0.28      1.24     29.10      0.00    108.32      0.00      1.12      0.30
+Average:       nvme0n1      0.28      1.24     29.10      0.00    108.32      0.00      1.12      0.30
+
+-bash-4.2$ sar -u -r -d 2 10
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+11:49:12 AM     CPU     %user     %nice   %system   %iowait    %steal     %idle
+11:49:14 AM     all      0.52      0.00      0.31      0.00      0.00     99.17
+11:49:16 AM     all      0.44      0.00      0.25      0.00      0.00     99.31
+11:49:18 AM     all      0.58      0.00      0.33      0.00      0.00     99.09
+11:49:20 AM     all      0.49      0.00      0.28      0.00      0.00     99.23
+11:49:22 AM     all      0.41      0.00      0.24      0.00      0.00     99.35
+11:49:24 AM     all      0.55      0.00      0.30      0.00      0.00     99.15
+11:49:26 AM     all      0.46      0.00      0.27      0.00      0.00     99.27
+11:49:28 AM     all      0.40      0.00      0.24      0.00      0.00     99.36
+11:49:30 AM     all      0.47      0.00      0.28      0.00      0.00     99.25
+11:49:32 AM     all      0.44      0.00      0.25      0.00      0.00     99.31
+Average:        all      0.48      0.00      0.27      0.00      0.00     99.25
+
+11:49:12 AM kbmemfree   kbavail   kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive kbinact kbdirty
+11:49:14 AM   2509304   2911032     709248     18.26     38616    592840   1023232     13.17   636340  361920       68
+11:49:16 AM   2509288   2911016     709264     18.26     38616    592848   1023232     13.17   636348  361920       68
+11:49:18 AM   2509268   2910996     709284     18.26     38616    592852   1023232     13.17   636352  361920       68
+11:49:20 AM   2509252   2910980     709300     18.26     38616    592860   1023232     13.17   636356  361920       68
+11:49:22 AM   2509240   2910968     709312     18.26     38616    592864   1023232     13.17   636360  361920       68
+11:49:24 AM   2509224   2910952     709328     18.26     38616    592872   1023232     13.17   636368  361920       68
+11:49:26 AM   2509208   2910936     709344     18.26     38616    592876   1023232     13.17   636372  361920       68
+11:49:28 AM   2509196   2910924     709356     18.26     38616    592880   1023232     13.17   636376  361920       68
+11:49:30 AM   2509180   2910908     709372     18.26     38616    592884   1023232     13.17   636380  361920       68
+11:49:32 AM   2509164   2910892     709388     18.27     38616    592892   1023232     13.17   636388  361920       68
+Average:      2509230   2910960     709322     18.26     38616    592867   1023232     13.17   636366  361920       68
+
+11:49:12 AM       DEV       tps     rkB/s     wkB/s     dkB/s   areq-sz    aqu-sz     await     %util
+11:49:14 AM    nvme0n1      0.20      0.00      6.40      0.00     32.00      0.00      0.92      0.18
+11:49:16 AM    nvme0n1      0.18      0.00      4.27      0.00     23.72      0.00      0.90      0.16
+11:49:18 AM    nvme0n1      0.21      0.50     10.12      0.00     48.19      0.00      1.14      0.24
+11:49:20 AM    nvme0n1      0.16      0.00      6.40      0.00     40.00      0.00      0.92      0.18
+11:49:22 AM    nvme0n1      0.19      0.00      8.53      0.00     42.65      0.00      1.05      0.22
+11:49:24 AM    nvme0n1      0.18      0.00      4.27      0.00     23.72      0.00      0.90      0.16
+11:49:26 AM    nvme0n1      0.16      0.00      6.40      0.00     40.00      0.00      0.92      0.18
+11:49:28 AM    nvme0n1      0.20      0.00      8.53      0.00     42.65      0.00      1.05      0.22
+11:49:30 AM    nvme0n1      0.18      0.00      4.27      0.00     23.72      0.00      0.90      0.16
+11:49:32 AM    nvme0n1      0.17      0.00      6.40      0.00     40.00      0.00      0.92      0.18
+Average:       nvme0n1      0.18      0.05      6.76      0.00     35.99      0.00      0.97      0.19
+
+-bash-4.2$ dstat
+You did not select any stats, using -cdngy by default.
+----total-cpu-usage---- -dsk/total- -net/total- ---paging-- ---system--
+usr sys idl wai stl| read  writ| recv  send|  in   out | int   csw
+  1   0  99   0   0|   0     8 |   0     0 |   0     0 |  78   129
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  79   131
+^C
+
+-bash-4.2$ dstat -cdnm
+----total-cpu-usage---- -dsk/total- -net/total- ---paging-- ---memory-usage----
+usr sys idl wai stl| read  writ| recv  send|  in   out | used  free  buff  cach
+  1   0  99   0   0|   0     8 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+^C
+
+-bash-4.2$ dstat --top-cpu --top-mem
+----total-cpu-usage---- -most-expensive- ----most-memory-usage----
+usr sys idl wai stl|process         cpu |process              mem
+  1   0  99   0   0|ssm-agent        0.2|NetworkManager        0.5
+  0   0 100   0   0|chronyd          0.1|ssm-agent             0.5
+^C
+
+-bash-4.2$ dstat -cdnm 2 10
+----total-cpu-usage---- -dsk/total- -net/total- ---paging-- ---memory-usage----
+usr sys idl wai stl| read  writ| recv  send|  in   out | used  free  buff  cach
+  1   0  99   0   0|   0     8 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     4 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  1   0  99   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+
+-bash-4.2$ dstat -cdnm --output /tmp/dstat.log 2 10
+----total-cpu-usage---- -dsk/total- -net/total- ---paging-- ---memory-usage----
+usr sys idl wai stl| read  writ| recv  send|  in   out | used  free  buff  cach
+  0   0 100   0   0|   0     8 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  1   0  99   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     4 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+  0   0 100   0   0|   0     0 |   0     0 |   0     0 |  692M 2450M  37M  579M
+
+-bash-4.2$ ls -la /tmp/dstat.log
+-rw-r--r--. 1 centos centos 2140 Feb 25 11:51 /tmp/dstat.log
+
+-bash-4.2$ perf list
+List of pre-defined events (to be used in -e):
+
+  cpu-cycles OR cycles                    [Hardware event]
+  instructions                            [Hardware event]
+  cache-references                        [Hardware event]
+  cache-misses                            [Hardware event]
+  branch-instructions                     [Hardware event]
+  branch-misses                           [Hardware event]
+  bus-cycles                              [Hardware event]
+  ref-cycles                              [Hardware event]
+
+  context-switches OR cs                  [Software event]
+  cpu-migrations OR migrations            [Software event]
+  page-faults OR faults                   [Software event]
+  minor-faults                            [Software event]
+  major-faults                            [Software event]
+
+  L1-dcache-loads                         [Hardware cache event]
+  L1-dcache-load-misses                   [Hardware cache event]
+  LLC-loads                               [Hardware cache event]
+  LLC-load-misses                         [Hardware cache event]
+
+-bash-4.2$ sudo perf record -a sleep 10
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.89 MB perf.data (2393 samples) ]
+
+-bash-4.2$ sudo perf report
+# Samples: 2K of event 'cpu-clock'
+# Event count (approx.): 2393000000
+#
+# Overhead  Command          Shared Object              Symbol
+# ........  ...............  .........................  ............................
+   12.45%   swapper          [kernel.kallsyms]          [k] native_safe_halt
+    8.11%   tuned            [kernel.kallsyms]          [k] schedule
+    6.37%   ssm-agent         libc.so.6                  [.] __GI___poll
+    5.92%   chronyd          libc.so.6                  [.] __GI___clock_nanosleep
+    4.88%   systemd          [kernel.kallsyms]          [k] do_idle
+
+-bash-4.2$ sudo perf top
+Samples:  45K of event 'cpu-clock', 4000 Hz, Event count (approx.): 11250000000
+Overhead  Shared Object              Symbol
+  11.23%  [kernel.kallsyms]          native_safe_halt
+   6.92%  [kernel.kallsyms]          schedule
+   4.10%  libc.so.6                  __GI___poll
+   3.44%  [kernel.kallsyms]          do_idle
+
+-bash-4.2$ sudo perf record -e cycles -a sleep 5
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.46 MB perf.data (1264 samples) ]
+
+-bash-4.2$ yes > /dev/null &
+[1] 2438
+
+-bash-4.2$ echo $CPU_PID
+2438
+
+-bash-4.2$ dd if=/dev/zero of=/tmp/memory_test bs=1M count=100
+100+0 records in
+100+0 records out
+104857600 bytes (105 MB, 100 MiB) copied, 0.0893123 s, 1.2 GB/s
+
+-bash-4.2$ dd if=/dev/zero of=/tmp/disk_test bs=1M count=500
+500+0 records in
+500+0 records out
+524288000 bytes (524 MB, 500 MiB) copied, 0.512843 s, 1.0 GB/s
+
+-bash-4.2$ rm -f /tmp/memory_test /tmp/disk_test
+
+-bash-4.2$ kill $CPU_PID
+
+-bash-4.2$ jobs
+[1]+  Terminated              yes > /dev/null
+
+-bash-4.2$ mkdir -p ~/performance_logs
+
+-bash-4.2$ sar -u 60 5 > ~/performance_logs/cpu_baseline.log
+
+-bash-4.2$ sar -r 60 5 > ~/performance_logs/memory_baseline.log
+
+-bash-4.2$ iostat -x 60 5 > ~/performance_logs/disk_baseline.log
+
+-bash-4.2$ sar -n DEV 60 5 > ~/performance_logs/network_baseline.log
+
+-bash-4.2$ ~/performance_monitor.sh 3
+Starting performance monitoring for 3 minutes...
+Logs will be saved in: /home/centos/performance_logs
+Collecting CPU data...
+Collecting memory data...
+Collecting disk I/O data...
+Collecting network data...
+Collecting comprehensive system data...
+Performance monitoring completed!
+Check logs in: /home/centos/performance_logs
+
+-bash-4.2$ ls -la ~/performance_logs/
+total 84
+drwxr-xr-x. 2 centos centos 4096 Feb 25 12:02 .
+drwx------. 6 centos centos 4096 Feb 25 12:01 ..
+-rw-r--r--. 1 centos centos  820 Feb 25 11:58 cpu_baseline.log
+-rw-r--r--. 1 centos centos  812 Feb 25 11:58 memory_baseline.log
+-rw-r--r--. 1 centos centos 3560 Feb 25 11:59 disk_baseline.log
+-rw-r--r--. 1 centos centos  940 Feb 25 11:59 network_baseline.log
+-rw-r--r--. 1 centos centos  560 Feb 25 12:02 cpu_20260225_120102.log
+-rw-r--r--. 1 centos centos  840 Feb 25 12:02 memory_20260225_120102.log
+-rw-r--r--. 1 centos centos 2790 Feb 25 12:02 disk_20260225_120102.log
+-rw-r--r--. 1 centos centos  980 Feb 25 12:02 network_20260225_120102.log
+-rw-r--r--. 1 centos centos 6120 Feb 25 12:02 system_20260225_120102.csv
+
+-bash-4.2$ echo "=== CPU Utilization Summary ==="
+=== CPU Utilization Summary ===
+
+-bash-4.2$ tail -n 10 ~/performance_logs/cpu_*.log
+12:01:02 PM     CPU     %user     %nice   %system   %iowait    %steal     %idle
+12:02:02 PM     all      0.73      0.00      0.41      0.02      0.00     98.84
+12:03:02 PM     all      0.58      0.00      0.33      0.01      0.00     99.08
+12:04:02 PM     all      0.61      0.00      0.35      0.01      0.00     99.03
+Average:        all      0.64      0.00      0.36      0.01      0.00     98.99
+
+-bash-4.2$ echo "=== Memory Usage Summary ==="
+=== Memory Usage Summary ===
+
+-bash-4.2$ tail -n 10 ~/performance_logs/memory_*.log
+12:01:02 PM kbmemfree   kbavail   kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive kbinact kbdirty
+12:02:02 PM   2508920   2910612     709632     18.28     38616    593020   1023360     13.17   636520  362040       72
+12:03:02 PM   2508844   2910528     709708     18.29     38616    593060   1023360     13.17   636560  362060       72
+12:04:02 PM   2508772   2910456     709780     18.29     38616    593108   1023360     13.17   636612  362080       76
+Average:      2508845   2910532     709707     18.29     38616    593063   1023360     13.17   636564  362060       73
+
+-bash-4.2$ echo "=== Disk I/O Summary ==="
+=== Disk I/O Summary ===
+
+-bash-4.2$ tail -n 10 ~/performance_logs/disk_*.log
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.61    0.00    0.34    0.01    0.00   99.04
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.00      0.00     0.00   0.00    0.00     0.00    0.18      6.40     0.00   0.00    0.91    35.56   0.00   0.17
+
+-bash-4.2$ echo "Dashboard script created. Run with: ~/performance_dashboard.sh"
+Dashboard script created. Run with: ~/performance_dashboard.sh
+
+-bash-4.2$ sudo dnf repolist
+repo id                               repo name
+rhel-9-for-x86_64-baseos-rpms          Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
+rhel-9-for-x86_64-appstream-rpms       Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
+
+-bash-4.2$ sudo dnf clean all
+0 files removed
+
+-bash-4.2$ sudo dnf install -y procps-ng sysstat dstat perf
+Last metadata expiration check: 0:01:11 ago on Tue 25 Feb 2026 12:03:52 PM UTC.
+Package procps-ng-3.3.17-13.el9.x86_64 is already installed.
+Package sysstat-12.5.4-7.el9.x86_64 is already installed.
+Package dstat-0.7.4-24.el9.noarch is already installed.
+Package perf-5.14.0-427.16.1.el9_4.x86_64 is already installed.
+Dependencies resolved.
+Nothing to do.
+Complete!
+
+-bash-4.2$ sudo perf top
+Samples:  11K of event 'cpu-clock', 4000 Hz, Event count (approx.): 2750000000
+Overhead  Shared Object              Symbol
+  10.95%  [kernel.kallsyms]          native_safe_halt
+   6.70%  [kernel.kallsyms]          schedule
+   4.02%  libc.so.6                  __GI___poll
+
+-bash-4.2$ echo 0 | sudo tee /proc/sys/kernel/perf_event_paranoid
+0
+
+-bash-4.2$ sudo systemctl restart sysstat
+
+-bash-4.2$ sudo systemctl status sysstat
+● sysstat.service - Resets System Activity Logs
+     Loaded: loaded (/usr/lib/systemd/system/sysstat.service; enabled; preset: disabled)
+     Active: active (exited) since Tue 2026-02-25 12:05:12 UTC; 2s ago
+
+-bash-4.2$ sudo /usr/lib64/sa/sa1
+
+-bash-4.2$ iostat 30 5
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-239)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.53    0.00    0.30    0.01    0.00   99.16
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_dscd/s
+nvme0n1           0.18         0.02         6.88         0.00
+...
+
+-bash-4.2$ top -p $(pgrep -d',' httpd)
+pgrep: pattern that searches for process name longer than 15 characters will result in zero matches
+top: -p requires a list of process IDs
+(No httpd running on this lab VM, so there were no PIDs to attach.)
+
+-bash-4.2$ echo "Testing top..."
+Testing top...
+
+-bash-4.2$ timeout 5 top -b -n 1 > /dev/null && echo "✓ top working"
+✓ top working
+
+-bash-4.2$ echo "Testing vmstat..."
+Testing vmstat...
+
+-bash-4.2$ vmstat 1 2 > /dev/null && echo "✓ vmstat working"
+✓ vmstat working
+
+-bash-4.2$ echo "Testing iostat..."
+Testing iostat...
+
+-bash-4.2$ iostat 1 2 > /dev/null && echo "✓ iostat working"
+✓ iostat working
+
+-bash-4.2$ echo "Testing sar..."
+Testing sar...
+
+-bash-4.2$ sar -u 1 2 > /dev/null && echo "✓ sar working"
+✓ sar working
+
+-bash-4.2$ echo "Testing dstat..."
+Testing dstat...
+
+-bash-4.2$ timeout 5 dstat 1 2 > /dev/null && echo "✓ dstat working"
+✓ dstat working
+
+-bash-4.2$ echo "Testing perf..."
+Testing perf...
+
+-bash-4.2$ sudo perf list > /dev/null && echo "✓ perf working"
+✓ perf working
