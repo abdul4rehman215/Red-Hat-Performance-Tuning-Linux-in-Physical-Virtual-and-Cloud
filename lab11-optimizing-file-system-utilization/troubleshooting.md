@@ -1,4 +1,4 @@
-# 🛠 Troubleshooting — Lab 11: Optimizing File System Utilization
+# 🛠 Troubleshooting Guide — Lab 11: Optimizing File System Utilization
 
 > This file documents common issues encountered during filesystem tuning and benchmarking, along with practical fixes and prevention tips.
 
