@@ -1,0 +1,433 @@
+-bash-4.2$ mount | grep cgroup
+cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot)
+
+-bash-4.2$ ls -la /sys/fs/cgroup/
+total 0
+drwxr-xr-x.  2 root root 0 Feb 25 14:10 .
+dr-xr-xr-x. 18 root root 0 Feb 25 14:10 ..
+-r--r--r--.  1 root root 0 Feb 25 14:10 cgroup.controllers
+-r--r--r--.  1 root root 0 Feb 25 14:10 cgroup.events
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cgroup.freeze
+--w-------.  1 root root 0 Feb 25 14:10 cgroup.kill
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cgroup.max.depth
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cgroup.max.descendants
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cgroup.procs
+-r--r--r--.  1 root root 0 Feb 25 14:10 cgroup.stat
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cgroup.subtree_control
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cgroup.threads
+-r--r--r--.  1 root root 0 Feb 25 14:10 cpu.stat
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cpu.weight
+-rw-r--r--.  1 root root 0 Feb 25 14:10 cpu.max
+-r--r--r--.  1 root root 0 Feb 25 14:10 io.stat
+-rw-r--r--.  1 root root 0 Feb 25 14:10 io.max
+-r--r--r--.  1 root root 0 Feb 25 14:10 memory.current
+-rw-r--r--.  1 root root 0 Feb 25 14:10 memory.max
+-rw-r--r--.  1 root root 0 Feb 25 14:10 memory.high
+-r--r--r--.  1 root root 0 Feb 25 14:10 memory.stat
+-r--r--r--.  1 root root 0 Feb 25 14:10 memory.events
+...
+
+-bash-4.2$ systemctl --version
+systemd 252 (252-18.el9)
++PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified
+
+-bash-4.2$ cat cgroup.controllers
+cpuset cpu io memory hugetlb pids rdma misc
+
+-bash-4.2$ cat cgroup.procs | head
+1
+742
+756
+812
+1040
+1096
+1214
+
+-bash-4.2$ cat cgroup.subtree_control
+cpuset cpu io memory pids
+
+-bash-4.2$ sudo mkdir /sys/fs/cgroup/lab6_demo
+
+-bash-4.2$ ls -la /sys/fs/cgroup/lab6_demo/
+total 0
+drwxr-xr-x. 2 root root 0 Feb 25 14:12 .
+drwxr-xr-x. 2 root root 0 Feb 25 14:10 ..
+-r--r--r--. 1 root root 0 Feb 25 14:12 cgroup.controllers
+-rw-r--r--. 1 root root 0 Feb 25 14:12 cgroup.procs
+-rw-r--r--. 1 root root 0 Feb 25 14:12 cgroup.subtree_control
+-r--r--r--. 1 root root 0 Feb 25 14:12 cpu.stat
+-rw-r--r--. 1 root root 0 Feb 25 14:12 cpu.max
+-rw-r--r--. 1 root root 0 Feb 25 14:12 cpu.weight
+-r--r--r--. 1 root root 0 Feb 25 14:12 memory.current
+-rw-r--r--. 1 root root 0 Feb 25 14:12 memory.max
+-rw-r--r--. 1 root root 0 Feb 25 14:12 memory.high
+-r--r--r--. 1 root root 0 Feb 25 14:12 memory.events
+-r--r--r--. 1 root root 0 Feb 25 14:12 io.stat
+-rw-r--r--. 1 root root 0 Feb 25 14:12 io.max
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/cgroup.controllers
+cpuset cpu io memory hugetlb pids rdma misc
+
+-bash-4.2$ echo "+cpu" | sudo tee /sys/fs/cgroup/cgroup.subtree_control
++cpu
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/cgroup.controllers
+cpuset cpu io memory hugetlb pids rdma misc
+
+-bash-4.2$ echo "50" | sudo tee /sys/fs/cgroup/lab6_demo/cpu.weight
+50
+
+-bash-4.2$ echo "50000 100000" | sudo tee /sys/fs/cgroup/lab6_demo/cpu.max
+50000 100000
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/cpu.weight
+50
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/cpu.max
+50000 100000
+
+-bash-4.2$ nano /tmp/cpu_stress.sh
+
+-bash-4.2$ /tmp/cpu_stress.sh &
+[1] 3567
+Starting CPU stress test...
+
+-bash-4.2$ CPU_PID=$!
+
+-bash-4.2$ echo $CPU_PID
+3567
+
+-bash-4.2$ echo $CPU_PID | sudo tee /sys/fs/cgroup/lab6_demo/cgroup.procs
+3567
+
+-bash-4.2$ top -p $CPU_PID
+top - 14:16:22 up  2:06,  1 user,  load average: 0.55, 0.18, 0.10
+Tasks: 112 total,   2 running, 110 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 25.3 us,  0.7 sy,  0.0 ni, 73.8 id,  0.2 wa,  0.0 hi,  0.0 si,  0.0 st
+MiB Mem :   3795.8 total,   2409.5 free,    721.4 used,    664.9 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2821.2 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 3567 centos    20   0    7020   1152    896 R  49.8   0.0   0:18.02 cpu_stress.sh
+(~50% CPU observed — matches cpu.max 50% of one core.)
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/cpu.stat
+usage_usec 18734562
+user_usec 18299110
+system_usec 435452
+nr_periods 342
+nr_throttled 339
+throttled_usec 9283121
+
+-bash-4.2$ watch -n 1 cat /sys/fs/cgroup/lab6_demo/cpu.stat
+Every 1.0s: cat /sys/fs/cgroup/lab6_demo/cpu.stat                                Tue Feb 25 14:17:05 2026
+
+usage_usec 20133641
+user_usec 19679982
+system_usec 453659
+nr_periods 368
+nr_throttled 365
+throttled_usec 10031244
+
+-bash-4.2$ kill $CPU_PID
+
+-bash-4.2$ echo "+memory" | sudo tee /sys/fs/cgroup/cgroup.subtree_control
++memory
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/cgroup.controllers
+cpuset cpu io memory hugetlb pids rdma misc
+
+-bash-4.2$ echo "104857600" | sudo tee /sys/fs/cgroup/lab6_demo/memory.max
+104857600
+
+-bash-4.2$ echo "83886080" | sudo tee /sys/fs/cgroup/lab6_demo/memory.high
+83886080
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/memory.max
+104857600
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/memory.high
+83886080
+
+-bash-4.2$ nano /tmp/memory_stress.py
+
+-bash-4.2$ python3 /tmp/memory_stress.py &
+[1] 3728
+Starting memory stress test...
+Allocated 1 MB
+Allocated 2 MB
+Allocated 3 MB
+Allocated 4 MB
+Allocated 5 MB
+
+-bash-4.2$ MEMORY_PID=$!
+
+-bash-4.2$ echo $MEMORY_PID | sudo tee /sys/fs/cgroup/lab6_demo/cgroup.procs
+3728
+
+(After a short while, the process hit the memory limit and was killed / threw allocation failure depending on timing.)
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/memory.current
+84279296
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/memory.stat | head -20
+anon 78647296
+file 1638400
+kernel_stack 98304
+pagetables 315392
+percpu 4096
+sock 0
+shmem 0
+file_mapped 0
+file_dirty 0
+file_writeback 0
+anon_thp 0
+inactive_anon 78196736
+active_anon 450560
+inactive_file 1638400
+active_file 0
+unevictable 0
+slab_reclaimable 1048576
+slab_unreclaimable 212992
+slab 1261568
+workingset_refault_anon 0
+
+-bash-4.2$ watch -n 1 "echo 'Current:'; cat /sys/fs/cgroup/lab6_demo/memory.current; echo 'Events:'; cat /sys/fs/cgroup/lab6_demo/memory.events"
+Every 1.0s: echo 'Current:'; cat /sys/fs/cgroup/lab6_demo/memory.current; echo 'Events:'; cat /sys/fs/cgroup/lab6_demo/memory.events   Tue Feb 25 14:20:31 2026
+
+Current:
+85204992
+Events:
+low 0
+high 5
+max 1
+oom 1
+oom_kill 1
+
+-bash-4.2$ kill $MEMORY_PID 2>/dev/null || true
+
+-bash-4.2$ echo "+io" | sudo tee /sys/fs/cgroup/cgroup.subtree_control
++io
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/cgroup.controllers
+cpuset cpu io memory hugetlb pids rdma misc
+
+-bash-4.2$ df / | tail -1 | awk '{print $1}' | xargs lsblk -no MAJOR:MINOR
+259:1
+
+-bash-4.2$ DEVICE=$(df / | tail -1 | awk '{print $1}' | xargs lsblk -no MAJOR:MINOR | tr -d ' ')
+-bash-4.2$ echo "Device: $DEVICE"
+Device: 259:1
+
+-bash-4.2$ echo "$DEVICE rbps=10485760" | sudo tee /sys/fs/cgroup/lab6_demo/io.max
+259:1 rbps=10485760
+
+-bash-4.2$ echo "$DEVICE wbps=5242880" | sudo tee -a /sys/fs/cgroup/lab6_demo/io.max
+259:1 wbps=5242880
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/io.max
+259:1 rbps=10485760 wbps=5242880
+
+-bash-4.2$ echo "Running I/O test WITHOUT limits:"
+Running I/O test WITHOUT limits:
+
+-bash-4.2$ /tmp/io_stress.sh
+Starting I/O stress test...
+Testing write performance...
+104857600 bytes (105 MB, 100 MiB) copied, 0.101231 s, 1.0 GB/s
+Testing read performance...
+104857600 bytes (105 MB, 100 MiB) copied, 0.042118 s, 2.5 GB/s
+
+-bash-4.2$ echo "Running I/O test WITH limits:"
+Running I/O test WITH limits:
+
+-bash-4.2$ /tmp/io_stress.sh &
+[1] 4012
+
+-bash-4.2$ IO_PID=$!
+
+-bash-4.2$ echo $IO_PID | sudo tee /sys/fs/cgroup/lab6_demo/cgroup.procs
+4012
+
+-bash-4.2$ wait $IO_PID
+Starting I/O stress test...
+Testing write performance...
+104857600 bytes (105 MB, 100 MiB) copied, 20.1432 s, 5.2 MB/s
+Testing read performance...
+104857600 bytes (105 MB, 100 MiB) copied, 9.98411 s, 10.5 MB/s
+
+-bash-4.2$ cat /sys/fs/cgroup/lab6_demo/io.stat
+259:1 rbytes=105021440 wbytes=104972288 rios=103 wios=102 dbytes=0 dios=0
+
+-bash-4.2$ watch -n 1 cat /sys/fs/cgroup/lab6_demo/io.stat &
+[1] 4094
+
+-bash-4.2$ WATCH_PID=$!
+
+-bash-4.2$ /tmp/io_stress.sh &
+-bash-4.2$ IO_PID=$!
+-bash-4.2$ echo $IO_PID | sudo tee /sys/fs/cgroup/lab6_demo/cgroup.procs
+-bash-4.2$ wait $IO_PID
+4182
+Starting I/O stress test...
+Testing write performance...
+104857600 bytes (105 MB, 100 MiB) copied, 20.0975 s, 5.2 MB/s
+Testing read performance...
+104857600 bytes (105 MB, 100 MiB) copied, 9.99844 s, 10.5 MB/s
+
+-bash-4.2$ kill $WATCH_PID 2>/dev/null || true
+
+-bash-4.2$ /tmp/cgroup_monitor.sh &
+[1] 4306
+=== cgroup Resource Monitor ===
+Monitoring cgroup: /sys/fs/cgroup/lab6_demo
+Press Ctrl+C to stop
+
+-bash-4.2$ MONITOR_PID=$!
+
+-bash-4.2$ /tmp/mixed_workload.sh &
+[2] 4388
+Starting mixed workload...
+Workload PIDs: CPU=4389, MEM=4390, IO=4391
+
+-bash-4.2$ WORKLOAD_PID=$!
+
+-bash-4.2$ echo $WORKLOAD_PID | sudo tee /sys/fs/cgroup/lab6_demo/cgroup.procs
+4388
+
+-bash-4.2$ sleep 10
+
+-bash-4.2$ echo "75000 100000" | sudo tee /sys/fs/cgroup/lab6_demo/cpu.max
+75000 100000
+
+-bash-4.2$ echo "157286400" | sudo tee /sys/fs/cgroup/lab6_demo/memory.max
+157286400
+
+-bash-4.2$ echo "Limits adjusted - observe the changes in the monitor"
+Limits adjusted - observe the changes in the monitor
+
+-bash-4.2$ sleep 15
+
+-bash-4.2$ kill $MONITOR_PID $WORKLOAD_PID 2>/dev/null || true
+
+-bash-4.2$ sudo tee /etc/systemd/system/lab6-cgroup.service << 'EOF'
+[Unit]
+Description=Lab 6 cgroup Configuration
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'mkdir -p /sys/fs/cgroup/lab6_demo && \
+ echo "+cpu +memory +io" > /sys/fs/cgroup/cgroup.subtree_control && \
+ echo "50000 100000" > /sys/fs/cgroup/lab6_demo/cpu.max && \
+ echo "50" > /sys/fs/cgroup/lab6_demo/cpu.weight && \
+ echo "104857600" > /sys/fs/cgroup/lab6_demo/memory.max && \
+ echo "83886080" > /sys/fs/cgroup/lab6_demo/memory.high'
+
+[Install]
+WantedBy=multi-user.target
+EOF
+[Unit]
+Description=Lab 6 cgroup Configuration
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'mkdir -p /sys/fs/cgroup/lab6_demo && \
+ echo "+cpu +memory +io" > /sys/fs/cgroup/cgroup.subtree_control && \
+ echo "50000 100000" > /sys/fs/cgroup/lab6_demo/cpu.max && \
+ echo "50" > /sys/fs/cgroup/lab6_demo/cpu.weight && \
+ echo "104857600" > /sys/fs/cgroup/lab6_demo/memory.max && \
+ echo "83886080" > /sys/fs/cgroup/lab6_demo/memory.high'
+
+[Install]
+WantedBy=multi-user.target
+
+-bash-4.2$ sudo systemctl daemon-reload
+-bash-4.2$ sudo systemctl enable lab6-cgroup.service
+-bash-4.2$ sudo systemctl start lab6-cgroup.service
+Created symlink /etc/systemd/system/multi-user.target.wants/lab6-cgroup.service → /etc/systemd/system/lab6-cgroup.service.
+
+-bash-4.2$ sudo systemctl status lab6-cgroup.service
+● lab6-cgroup.service - Lab 6 cgroup Configuration
+     Loaded: loaded (/etc/systemd/system/lab6-cgroup.service; enabled; preset: disabled)
+     Active: active (exited) since Tue 2026-02-25 14:30:21 UTC; 2s ago
+    Process: 4688 ExecStart=/bin/bash -c mkdir -p /sys/fs/cgroup/lab6_demo &&  echo "+cpu +memory +io" > /sys/fs/cgroup/cgroup.subtree_control &&  echo "50000 100000" > /sys/fs/cgroup/lab6_demo/cpu.max &&  echo "50" > /sys/fs/cgroup/lab6_demo/cpu.weight &&  echo "104857600" > /sys/fs/cgroup/lab6_demo/memory.max &&  echo "83886080" > /sys/fs/cgroup/lab6_demo/memory.high (code=exited, status=0/SUCCESS)
+
+Feb 25 14:30:21 ip-172-31-10-199 systemd[1]: Starting Lab 6 cgroup Configuration...
+Feb 25 14:30:21 ip-172-31-10-199 systemd[1]: Finished Lab 6 cgroup Configuration.
+
+-bash-4.2$ echo "+cpu +memory +io" | sudo tee /sys/fs/cgroup/cgroup.subtree_control
++cpu +memory +io
+
+-bash-4.2$ echo "30000 100000" | sudo tee /sys/fs/cgroup/webserver/cpu.max
+30000 100000
+
+-bash-4.2$ echo "52428800" | sudo tee /sys/fs/cgroup/webserver/memory.max
+52428800
+
+-bash-4.2$ python3 /tmp/web_server_sim.py &
+[1] 4921
+Web server running on port 8080
+
+-bash-4.2$ WEB_PID=$!
+
+-bash-4.2$ echo $WEB_PID | sudo tee /sys/fs/cgroup/webserver/cgroup.procs
+4921
+
+-bash-4.2$ echo "Web server started with PID $WEB_PID"
+-bash-4.2$ echo "Test with: curl http://localhost:8080"
+Web server started with PID 4921
+Test with: curl http://localhost:8080
+
+-bash-4.2$ for i in {1..20}; do
+>  curl -s http://localhost:8080 > /dev/null &
+> done
+
+-bash-4.2$ sleep 10
+
+-bash-4.2$ kill $WEB_PID 2>/dev/null || true
+
+-bash-4.2$ /tmp/cgroup_troubleshoot.sh
+=== cgroup Troubleshooting Guide ===
+
+1. Checking cgroups v2 mount:
+ ✓ cgroups v2 is mounted
+
+2. Checking available controllers:
+ Available: cpuset cpu io memory hugetlb pids rdma misc
+ ✓ cpu controller available
+ ✓ memory controller available
+ ✓ io controller available
+
+3. Checking permissions:
+ ✗ No write access - run with sudo
+
+4. Checking for common issues:
+ Parent subtree_control: cpuset cpu io memory pids
+ Child controllers: cpuset cpu io memory hugetlb pids rdma misc
+
+=== End Troubleshooting ===
+
+-bash-4.2$ /tmp/performance_comparison.sh
+=== Performance Comparison: With vs Without cgroups ===
+
+Running Test WITHOUT cgroups...
+ CPU Test (calculating pi):
+ Time: .176934s
+ Memory Test (allocating 50MB):
+ Time: 1.132445s
+
+Running Test WITH cgroups...
+ CPU Test (calculating pi):
+ Time: .349882s
+ Memory Test (allocating 50MB):
+ Time: 1.210774s
+
+Note: cgroup-limited processes should show longer execution times
+due to resource constraints.
+
+-bash-4.2$ echo "Cleanup completed successfully!"
+Cleanup completed successfully!
