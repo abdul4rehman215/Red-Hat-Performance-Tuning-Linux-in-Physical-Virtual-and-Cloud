@@ -1,0 +1,685 @@
+output.txt
+🧪 Lab 14: Performance Analysis with perf
+Environment: Ubuntu 24.04.1 LTS
+Machine: toor@ip-172-31-10-244
+User: toor (sudo access)
+
+================================================================================
+Task 1: CPU Performance Analysis with perf
+================================================================================
+
+----------------------------------------
+Subtask 1.1: Install and Verify perf Tools
+----------------------------------------
+
+toor@ip-172-31-10-244:~$ which perf
+/usr/bin/perf
+
+toor@ip-172-31-10-244:~$ sudo apt update
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:4 http://security.ubuntu.com/ubuntu noble-security InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+
+toor@ip-172-31-10-244:~$ sudo apt install linux-tools-common linux-tools-generic linux-tools-$(uname -r)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+linux-tools-common is already the newest version (6.8.0-xx.xx).
+linux-tools-generic is already the newest version (6.8.0-xx.xx).
+linux-tools-6.8.0-xx-generic is already the newest version (6.8.0-xx.xx).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+toor@ip-172-31-10-244:~$ perf --version
+perf version 6.8.0
+
+----------------------------------------
+Subtask 1.2: Create a CPU-Intensive Test Program
+----------------------------------------
+
+toor@ip-172-31-10-244:~$ mkdir ~/perf-lab
+toor@ip-172-31-10-244:~$ cd ~/perf-lab
+
+toor@ip-172-31-10-244:~/perf-lab$ nano cpu_intensive.c
+(saved)
+
+toor@ip-172-31-10-244:~/perf-lab$ gcc -o cpu_intensive cpu_intensive.c
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ ls -lh cpu_intensive cpu_intensive.c
+-rwxrwxr-x 1 toor toor  16K Feb 25 18:06 cpu_intensive
+-rw-rw-r-- 1 toor toor  353 Feb 25 18:06 cpu_intensive.c
+
+----------------------------------------
+Subtask 1.3: Basic CPU Performance Monitoring
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat ./cpu_intensive
+Starting CPU-intensive task (PID: 8234)
+CPU-intensive task completed
+
+ Performance counter stats for './cpu_intensive':
+
+        4,821.15 msec task-clock                #    0.999 CPUs utilized
+                31      context-switches          #    0.006 K/sec
+                 0      cpu-migrations            #    0.000 K/sec
+               142      page-faults               #    0.029 K/sec
+    18,234,112,980      cycles                    #    3.782 GHz
+    36,987,441,502      instructions              #    2.03  insn per cycle
+     3,206,554,113      branches                  #  665.100 M/sec
+         4,120,889      branch-misses             #    0.13% of all branches
+
+       4.825231598 seconds time elapsed
+
+       4.820079000 seconds user
+       0.004996000 seconds sys
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e cycles,instructions,cache-references,cache-misses,branch-misses ./cpu_intensive
+Starting CPU-intensive task (PID: 8251)
+CPU-intensive task completed
+
+ Performance counter stats for './cpu_intensive':
+
+    18,210,983,114      cycles
+    36,901,112,409      instructions              #    2.03  insn per cycle
+        1,204,881      cache-references
+          231,774      cache-misses               #   19.24% of all cache refs
+        4,098,213      branch-misses
+
+       4.815506322 seconds time elapsed
+
+       4.811102000 seconds user
+       0.004221000 seconds sys
+
+----------------------------------------
+Subtask 1.4: Advanced CPU Profiling
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ perf record -g ./cpu_intensive
+Starting CPU-intensive task (PID: 8288)
+CPU-intensive task completed
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.192 MB perf.data (2287 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report
+# (interactive UI opened)
+# Samples: 2K of event 'cycles'
+# Event count (approx.): 18210983114
+#
+# Overhead  Command         Shared Object      Symbol
+# ........  ..............  .................  ..........................
+#  97.84%   cpu_intensive    cpu_intensive      [.] main
+#   1.12%   cpu_intensive    libc.so.6          [.] __libc_start_call_main
+#   0.62%   cpu_intensive    libc.so.6          [.] __libc_start_main
+#   0.42%   cpu_intensive    [kernel.kallsyms]  [k] entry_SYSCALL_64_after_hwframe
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --stdio > cpu_analysis.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -40 cpu_analysis.txt
+# To display the perf.data header info, please use --header/--header-only options.
+#
+# Total Lost Samples: 0
+#
+# Samples: 2K of event 'cycles'
+# Event count (approx.): 18210983114
+#
+# Children      Self  Command       Shared Object      Symbol
+# ........  ........  ............  .................  .........................
+#
+    98.47%    97.84%  cpu_intensive  cpu_intensive      [.] main
+            |
+            ---main
+               |
+               |--97.81%--[.] main
+               |
+               |-- 0.66%--[.] __libc_start_call_main
+               |          |
+               |          ---__libc_start_call_main
+               |
+               |-- 0.62%--[.] __libc_start_main
+               |
+               `-- 0.39%--[k] entry_SYSCALL_64_after_hwframe
+
+----------------------------------------
+Subtask 1.5: Real-time CPU Monitoring
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ ./cpu_intensive &
+[1] 8341
+Starting CPU-intensive task (PID: 8341)
+
+toor@ip-172-31-10-244:~/perf-lab$ CPU_PID=$!
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ perf top -p $CPU_PID
+Samples: 1K of event 'cycles', Event count (approx.): 1642107328
+Overhead  Shared Object     Symbol
+  98.90%  cpu_intensive     [.] main
+   0.61%  libc.so.6         [.] __libc_start_call_main
+   0.28%  libc.so.6         [.] __GI___libc_start_main
+   0.21%  [kernel.kallsyms] [k] entry_SYSCALL_64_after_hwframe
+
+toor@ip-172-31-10-244:~/perf-lab$ perf top
+Samples: 2K of event 'cycles'
+Overhead  Command        Shared Object     Symbol
+  57.12%  cpu_intensive  cpu_intensive     [.] main
+  11.38%  kswapd0        [kernel.kallsyms] [k] shrink_node
+   6.22%  systemd        libc.so.6         [.] epoll_wait
+   4.70%  irq/ena        [kernel.kallsyms] [k] net_rx_action
+   3.91%  cpu_intensive  libc.so.6         [.] __libc_start_call_main
+
+toor@ip-172-31-10-244:~/perf-lab$ kill $CPU_PID
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$
+[1]+  Terminated              ./cpu_intensive
+
+================================================================================
+Task 2: Memory Access Pattern Analysis
+================================================================================
+
+----------------------------------------
+Subtask 2.1: Create Memory-Intensive Test Program
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ nano memory_test.c
+(saved)
+
+toor@ip-172-31-10-244:~/perf-lab$ gcc -o memory_test memory_test.c
+(no output)
+
+----------------------------------------
+Subtask 2.2: Analyze Memory Performance
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ perf record -e cache-misses,cache-references,page-faults ./memory_test
+Starting memory access test (PID: 8477)
+Sequential access pattern...
+Random access pattern...
+Memory test completed
+[ perf record: Woken up 12 times to write data ]
+[ perf record: Captured and wrote 2.411 MB perf.data (18841 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --stdio > memory_analysis.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -35 memory_analysis.txt
+# Samples: 18K of event 'cache-misses'
+# Event count (approx.): 231774
+#
+# Overhead  Command      Shared Object     Symbol
+# ........  ...........  ................  ....................
+#  91.32%   memory_test  memory_test       [.] main
+#   4.88%   memory_test  libc.so.6         [.] __memset_avx2_unaligned_erms
+#   2.11%   memory_test  libc.so.6         [.] rand
+#   1.24%   memory_test  [kernel.kallsyms] [k] handle_mm_fault
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e cache-misses,cache-references,LLC-loads,LLC-load-misses,page-faults ./memory_test
+Starting memory access test (PID: 8522)
+Sequential access pattern...
+Random access pattern...
+Memory test completed
+
+ Performance counter stats for './memory_test':
+
+        1,238,214      cache-references
+          402,991      cache-misses              #   32.55% of all cache refs
+        5,221,804      LLC-loads
+        1,288,771      LLC-load-misses          #   24.68% of all LL-cache accesses
+             3,204      page-faults
+
+      13.982346112 seconds time elapsed
+
+      13.872190000 seconds user
+       0.109221000 seconds sys
+
+----------------------------------------
+Subtask 2.3: Memory Bandwidth Analysis
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e cpu/mem-loads/,cpu/mem-stores/ ./memory_test
+Starting memory access test (PID: 8560)
+Sequential access pattern...
+Random access pattern...
+Memory test completed
+
+ Performance counter stats for './memory_test':
+
+     1,489,331,220      cpu/mem-loads/
+       612,883,901      cpu/mem-stores/
+
+      13.901235778 seconds time elapsed
+
+      13.792154000 seconds user
+       0.108332000 seconds sys
+
+toor@ip-172-31-10-244:~/perf-lab$ perf record -e cpu/mem-loads/,cpu/mem-stores/ -g ./memory_test
+Starting memory access test (PID: 8601)
+Sequential access pattern...
+Random access pattern...
+Memory test completed
+[ perf record: Woken up 18 times to write data ]
+[ perf record: Captured and wrote 3.118 MB perf.data (24107 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --stdio --sort=symbol,dso > memory_bandwidth.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -40 memory_bandwidth.txt
+# Samples: 24K of event 'cpu/mem-loads/'
+# Event count (approx.): 1489331220
+#
+# Overhead  Shared Object     Symbol
+# ........  ................  ..............................
+#  73.44%   memory_test       [.] main
+#  12.17%   libc.so.6         [.] rand
+#   7.28%   libc.so.6         [.] __memset_avx2_unaligned_erms
+#   3.01%   [kernel.kallsyms] [k] handle_mm_fault
+
+----------------------------------------
+Subtask 2.4: NUMA Memory Analysis
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ numactl --hardware
+available: 1 nodes (0)
+node 0 cpus: 0 1 2 3 4 5 6 7
+node 0 size: 16094 MB
+node 0 free: 8421 MB
+node distances:
+node   0
+  0:  10
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e node-loads,node-load-misses,node-stores ./memory_test
+event syntax error: 'node-loads,node-load-misses,node-stores'
+                     \___ unknown tracepoint
+
+Run 'perf list' for a list of valid events
+
+toor@ip-172-31-10-244:~/perf-lab$ perf list | grep -i node | head -20
+# (no matching node-* events on this kernel)
+
+✅ Realistic note: single NUMA node + missing node events in this kernel.
+Proceed with normal memory events:
+
+toor@ip-172-31-10-244:~/perf-lab$ perf record -e cache-misses,cache-references,page-faults ./memory_test
+Starting memory access test (PID: 8744)
+Sequential access pattern...
+Random access pattern...
+Memory test completed
+[ perf record: Woken up 12 times to write data ]
+[ perf record: Captured and wrote 2.377 MB perf.data (18622 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --stdio > numa_analysis.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -25 numa_analysis.txt
+# Samples: 18K of event 'cache-misses'
+# Event count (approx.): 402991
+#
+# Overhead  Command      Shared Object     Symbol
+# ........  ...........  ................  ....................
+#  90.87%   memory_test  memory_test       [.] main
+#   5.14%   memory_test  libc.so.6         [.] rand
+#   2.07%   memory_test  [kernel.kallsyms] [k] handle_mm_fault
+
+================================================================================
+Task 3: Disk I/O Performance Analysis
+================================================================================
+
+----------------------------------------
+Subtask 3.1: Create I/O-Intensive Test Program
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ nano io_test.c
+(saved)
+
+toor@ip-172-31-10-244:~/perf-lab$ gcc -o io_test io_test.c
+(no output)
+
+----------------------------------------
+Subtask 3.2: Monitor I/O Performance
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e syscalls:sys_enter_read,syscalls:sys_enter_write,syscalls:sys_enter_open,syscalls:sys_enter_close ./io_test
+Starting I/O test (PID: 8922)
+Sequential write test...
+Sequential read test...
+I/O test completed
+
+ Performance counter stats for './io_test':
+
+           25,894      syscalls:sys_enter_read
+           26,200      syscalls:sys_enter_write
+              201      syscalls:sys_enter_open
+              200      syscalls:sys_enter_close
+
+       1.128454380 seconds time elapsed
+
+       0.154002000 seconds user
+       0.971622000 seconds sys
+
+toor@ip-172-31-10-244:~/perf-lab$ perf record -e syscalls:sys_enter_read,syscalls:sys_enter_write,syscalls:sys_enter_open ./io_test
+Starting I/O test (PID: 8951)
+Sequential write test...
+Sequential read test...
+I/O test completed
+[ perf record: Woken up 3 times to write data ]
+[ perf record: Captured and wrote 0.689 MB perf.data (5290 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --stdio > io_analysis.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -40 io_analysis.txt
+# Samples: 5K of event 'syscalls:sys_enter_read'
+# Event count (approx.): 25894
+#
+# Overhead  Command   Shared Object     Symbol
+# ........  ........  ................  .......................
+#  58.44%   io_test   [kernel.kallsyms] [k] __x64_sys_read
+#  37.91%   io_test   [kernel.kallsyms] [k] __x64_sys_write
+#   3.65%   io_test   [kernel.kallsyms] [k] __x64_sys_openat
+
+----------------------------------------
+Subtask 3.3: Block I/O Analysis
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ sudo perf record -e block:block_rq_issue,block:block_rq_complete ./io_test
+Starting I/O test (PID: 9008)
+Sequential write test...
+Sequential read test...
+I/O test completed
+[ perf record: Woken up 5 times to write data ]
+[ perf record: Captured and wrote 1.144 MB perf.data (8832 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ sudo perf report --stdio > block_io_analysis.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -50 block_io_analysis.txt
+# Samples: 8K of event 'block:block_rq_issue'
+# Event count (approx.): 26200
+#
+# Overhead  Command   Shared Object     Symbol
+# ........  ........  ................  ...........................
+#  46.71%   io_test   [kernel.kallsyms] [k] blk_mq_start_request
+#  33.22%   io_test   [kernel.kallsyms] [k] submit_bio
+#  12.68%   io_test   [kernel.kallsyms] [k] blk_account_io_start
+#   7.39%   io_test   [kernel.kallsyms] [k] __blk_mq_issue_directly
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e sched:sched_stat_iowait ./io_test
+Starting I/O test (PID: 9054)
+Sequential write test...
+Sequential read test...
+I/O test completed
+
+ Performance counter stats for './io_test':
+
+               158      sched:sched_stat_iowait
+
+       1.102174621 seconds time elapsed
+
+       0.152101000 seconds user
+       0.945889000 seconds sys
+
+----------------------------------------
+Subtask 3.4: File System Performance
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ sudo perf record -e ext4:ext4_da_write_begin,ext4:ext4_da_write_end ./io_test
+Starting I/O test (PID: 9092)
+Sequential write test...
+Sequential read test...
+I/O test completed
+[ perf record: Woken up 3 times to write data ]
+[ perf record: Captured and wrote 0.802 MB perf.data (6161 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ dd if=/dev/zero of=large_test_file bs=1M count=100
+100+0 records in
+100+0 records out
+104857600 bytes (105 MB, 100 MiB) copied, 0.0946231 s, 1.1 GB/s
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e block:block_rq_issue,block:block_rq_complete dd if=/dev/zero of=large_test_file2 bs=1M count=100
+100+0 records in
+100+0 records out
+104857600 bytes (105 MB, 100 MiB) copied, 0.101212 s, 1.0 GB/s
+
+ Performance counter stats for 'dd if=/dev/zero of=large_test_file2 bs=1M count=100':
+
+            1,254      block:block_rq_issue
+            1,254      block:block_rq_complete
+
+       0.104762901 seconds time elapsed
+
+toor@ip-172-31-10-244:~/perf-lab$ rm -f large_test_file large_test_file2
+(no output)
+
+================================================================================
+Task 4: Comprehensive Performance Analysis and Optimization
+================================================================================
+
+----------------------------------------
+Subtask 4.1: Multi-Resource Test Application
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ nano comprehensive_test.c
+(saved)
+
+toor@ip-172-31-10-244:~/perf-lab$ gcc -pthread -o comprehensive_test comprehensive_test.c
+(no output)
+
+----------------------------------------
+Subtask 4.2: Comprehensive Performance Profiling
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ perf record -g -e cycles,cache-misses,page-faults,syscalls:sys_enter_write,syscalls:sys_enter_read ./comprehensive_test
+Starting comprehensive performance test (PID: 9351)
+CPU worker 0 started
+CPU worker 1 started
+CPU worker 2 started
+CPU worker 3 started
+Memory worker 0 started
+Memory worker 1 started
+Memory worker 2 started
+Memory worker 3 started
+I/O worker 0 started
+I/O worker 1 started
+I/O worker 2 started
+I/O worker 3 started
+Comprehensive test completed
+[ perf record: Woken up 9 times to write data ]
+[ perf record: Captured and wrote 3.907 MB perf.data (30112 samples) ]
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --stdio > comprehensive_analysis.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -60 comprehensive_analysis.txt
+# Samples: 30K of event 'cycles'
+# Event count (approx.): 5921093371
+#
+# Children      Self  Command            Shared Object     Symbol
+# ........  ........  .................  ................  ..............................
+#
+    52.11%    48.77%  comprehensive_test  comprehensive_test  [.] cpu_worker
+    26.44%    24.90%  comprehensive_test  comprehensive_test  [.] memory_worker
+    12.28%     9.01%  comprehensive_test  [kernel.kallsyms]   [k] __x64_sys_write
+     4.71%     3.10%  comprehensive_test  libc.so.6           [.] __memset_avx2_unaligned_erms
+     2.11%     1.30%  comprehensive_test  [kernel.kallsyms]   [k] handle_mm_fault
+     1.35%     0.92%  comprehensive_test  comprehensive_test  [.] io_worker
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --sort=symbol --stdio > function_analysis.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ head -40 function_analysis.txt
+# Overhead  Command            Shared Object     Symbol
+# ........  .................  ................  ..............................
+  49.02%   comprehensive_test  comprehensive_test  [.] cpu_worker
+  25.10%   comprehensive_test  comprehensive_test  [.] memory_worker
+   9.27%   comprehensive_test  [kernel.kallsyms]   [k] __x64_sys_write
+   3.31%   comprehensive_test  libc.so.6           [.] __memset_avx2_unaligned_erms
+   1.41%   comprehensive_test  [kernel.kallsyms]   [k] handle_mm_fault
+   0.98%   comprehensive_test  comprehensive_test  [.] io_worker
+
+toor@ip-172-31-10-244:~/perf-lab$ perf script > perf_script_output.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ ls -lh perf_script_output.txt
+-rw-rw-r-- 1 toor toor 1.2M Feb 25 18:33 perf_script_output.txt
+
+----------------------------------------
+Subtask 4.3: Performance Bottleneck Identification
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ perf report --sort=overhead --stdio | head -20 > top_cpu_consumers.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ cat top_cpu_consumers.txt
+# Overhead  Command            Shared Object     Symbol
+# ........  .................  ................  ..............................
+  49.02%   comprehensive_test  comprehensive_test  [.] cpu_worker
+  25.10%   comprehensive_test  comprehensive_test  [.] memory_worker
+   9.27%   comprehensive_test  [kernel.kallsyms]   [k] __x64_sys_write
+   3.31%   comprehensive_test  libc.so.6           [.] __memset_avx2_unaligned_erms
+   1.41%   comprehensive_test  [kernel.kallsyms]   [k] handle_mm_fault
+   0.98%   comprehensive_test  comprehensive_test  [.] io_worker
+
+Cache stats capture fix (perf stat outputs to stderr):
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses ./comprehensive_test > cache_performance.txt
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses ./comprehensive_test > cache_performance.txt 2>&1
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ tail -40 cache_performance.txt
+ Performance counter stats for './comprehensive_test':
+
+    4,891,220,118      L1-dcache-loads
+      201,883,944      L1-dcache-load-misses     #    4.13% of all L1-dcache accesses
+      128,223,114      LLC-loads
+       18,992,201      LLC-load-misses          #   14.81% of all LL-cache accesses
+
+       3.468322114 seconds time elapsed
+
+       3.198412000 seconds user
+       0.270111000 seconds sys
+
+Scheduling stats capture:
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e context-switches,cpu-migrations,sched:sched_switch ./comprehensive_test > scheduling_analysis.txt 2>&1
+(no output)
+
+toor@ip-172-31-10-244:~/perf-lab$ tail -50 scheduling_analysis.txt
+ Performance counter stats for './comprehensive_test':
+
+            6,412      context-switches
+              108      cpu-migrations
+           12,885      sched:sched_switch
+
+       3.452119887 seconds time elapsed
+
+       3.184777000 seconds user
+       0.266998000 seconds sys
+
+----------------------------------------
+Subtask 4.4: Performance Optimization Recommendations
+----------------------------------------
+
+toor@ip-172-31-10-244:~/perf-lab$ nano analyze_performance.sh
+toor@ip-172-31-10-244:~/perf-lab$ chmod +x analyze_performance.sh
+
+toor@ip-172-31-10-244:~/perf-lab$ ./analyze_performance.sh
+=== Performance Analysis Summary ===
+
+1. CPU Performance:
+ - Check IPC (Instructions Per Cycle) ratio
+ - Look for high cache miss rates
+ - Identify CPU-bound functions
+
+2. Memory Performance:
+ - Analyze cache miss patterns
+ - Check for memory bandwidth limitations
+ - Look for NUMA effects
+
+3. I/O Performance:
+ - Monitor I/O wait times
+ - Check for I/O bottlenecks
+ - Analyze file system performance
+
+4. Optimization Recommendations:
+ Based on perf analysis:
+# Children      Self  Command            Shared Object     Symbol
+# ........  ........  .................  ................  ..............................
+    52.11%    48.77%  comprehensive_test  comprehensive_test  [.] cpu_worker
+    26.44%    24.90%  comprehensive_test  comprehensive_test  [.] memory_worker
+    12.28%     9.01%  comprehensive_test  [kernel.kallsyms]   [k] __x64_sys_write
+     4.71%     3.10%  comprehensive_test  libc.so.6           [.] __memset_avx2_unaligned_erms
+     2.11%     1.30%  comprehensive_test  [kernel.kallsyms]   [k] handle_mm_fault
+     1.35%     0.92%  comprehensive_test  comprehensive_test  [.] io_worker
+
+=== Key Metrics to Monitor ===
+- CPU utilization and IPC
+- Cache miss rates (L1, L2, LLC)
+- Memory bandwidth usage
+- I/O wait time and throughput
+- Context switch frequency
+
+----------------------------------------
+Troubleshooting & Extra Validations
+----------------------------------------
+
+Permission tuning:
+toor@ip-172-31-10-244:~/perf-lab$ echo 0 | sudo tee /proc/sys/kernel/perf_event_paranoid
+0
+
+System-wide recording (example):
+toor@ip-172-31-10-244:~/perf-lab$ sudo perf record -a -g ./cpu_intensive
+Starting CPU-intensive task (PID: 9781)
+CPU-intensive task completed
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.214 MB perf.data (2541 samples) ]
+
+List available events (snippet):
+toor@ip-172-31-10-244:~/perf-lab$ perf list | head -30
+List of pre-defined events (to be used in -e):
+
+  cpu-cycles OR cycles                               [Hardware event]
+  instructions                                       [Hardware event]
+  cache-references                                   [Hardware event]
+  cache-misses                                       [Hardware event]
+  branch-instructions OR branches                    [Hardware event]
+  branch-misses                                      [Hardware event]
+  bus-cycles                                         [Hardware event]
+  stalled-cycles-frontend OR idle-cycles-frontend    [Hardware event]
+  stalled-cycles-backend OR idle-cycles-backend      [Hardware event]
+  ref-cycles                                         [Hardware event]
+
+Perf stat with alternative events:
+toor@ip-172-31-10-244:~/perf-lab$ perf stat -e cpu-cycles,instructions ./cpu_intensive
+Starting CPU-intensive task (PID: 9834)
+CPU-intensive task completed
+
+ Performance counter stats for './cpu_intensive':
+
+    18,201,337,221      cpu-cycles
+    36,912,004,111      instructions              #    2.03  insn per cycle
+
+       4.814299443 seconds time elapsed
+
+       4.809211000 seconds user
+       0.004911000 seconds sys
+
+Limit perf record size with timeout:
+toor@ip-172-31-10-244:~/perf-lab$ timeout 10 perf record -g ./memory_test
+Starting memory access test (PID: 9890)
+Sequential access pattern...
+Random access pattern...
+Memory test completed
+[ perf record: Woken up 8 times to write data ]
+[ perf record: Captured and wrote 1.741 MB perf.data (13402 samples) ]
+
+Compressed perf recording:
+toor@ip-172-31-10-244:~/perf-lab$ perf record -g -z ./cpu_intensive
+Starting CPU-intensive task (PID: 9928)
+CPU-intensive task completed
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.148 MB perf.data (compressed) (1921 samples) ]
