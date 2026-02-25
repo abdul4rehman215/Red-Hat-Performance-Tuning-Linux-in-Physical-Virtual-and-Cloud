@@ -1,0 +1,13 @@
+# configs/memory_config.xml
+<domain type='kvm'>
+ <memory unit='KiB'>4194304</memory>
+ <currentMemory unit='KiB'>2097152</currentMemory>
+ <memoryBacking>
+ <hugepages/>
+ <nosharepages/>
+ <locked/>
+ </memoryBacking>
+ <numatune>
+ <memory mode='strict' nodeset='0'/>
+ </numatune>
+</domain>
