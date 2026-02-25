@@ -1,0 +1,6 @@
+# /etc/rc.local (persistent scheduler via rc.local — content I added)
+
+#!/bin/bash
+# Set I/O scheduler for optimal performance
+echo mq-deadline > /sys/block/nvme0n1/queue/scheduler
+exit 0
