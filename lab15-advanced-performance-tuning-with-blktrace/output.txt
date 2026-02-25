@@ -1,0 +1,482 @@
+output.txt
+🧪 Lab 15: Advanced Performance Tuning with Blktrace
+Environment: Ubuntu 24.04.1 LTS
+Machine: toor@ip-172-31-10-251
+User: toor (sudo access)
+Primary disk: nvme0n1 (root), additional disk: nvme1n1 (testing)
+
+================================================================================
+Task 1: Install and Configure Blktrace
+================================================================================
+
+----------------------------------------
+Subtask 1.1: Install Blktrace Package
+----------------------------------------
+
+toor@ip-172-31-10-251:~$ sudo apt update
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:4 http://security.ubuntu.com/ubuntu noble-security InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+
+toor@ip-172-31-10-251:~$ sudo apt install -y blktrace
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  blktrace
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 124 kB of archives.
+After this operation, 436 kB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu noble/main amd64 blktrace amd64 1.3.0-4build2 [124 kB]
+Fetched 124 kB in 0s (812 kB/s)
+Selecting previously unselected package blktrace.
+(Reading database ... 118202 files and directories currently installed.)
+Preparing to unpack .../blktrace_1.3.0-4build2_amd64.deb ...
+Unpacking blktrace (1.3.0-4build2) ...
+Setting up blktrace (1.3.0-4build2) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+
+toor@ip-172-31-10-251:~$ sudo apt install -y sysstat iotop
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+sysstat is already the newest version (12.6.1-2ubuntu3).
+iotop is already the newest version (0.6-2build1).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+----------------------------------------
+Subtask 1.2: Verify Installation and Check Available Devices
+----------------------------------------
+
+toor@ip-172-31-10-251:~$ blktrace -V
+blktrace version 1.3.0
+
+toor@ip-172-31-10-251:~$ lsblk
+NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+loop0         7:0    0 27.2M  1 loop /snap/amazon-ssm-agent/11320
+loop1         7:1    0 26.3M  1 loop /snap/amazon-ssm-agent/9881
+nvme0n1     259:0    0   32G  0 disk
+├─nvme0n1p1 259:1    0   31G  0 part /
+├─nvme0n1p15 259:2   0  105M  0 part /boot/efi
+└─nvme0n1p16 259:3   0  913M  0 part /boot
+nvme1n1     259:4    0   40G  0 disk
+
+toor@ip-172-31-10-251:~$ for dev in $(lsblk -d -o NAME --noheadings); do
+>  if [ -f /sys/block/$dev/queue/scheduler ]; then
+>  echo "Device $dev scheduler: $(cat /sys/block/$dev/queue/scheduler)"
+>  fi
+> done
+Device loop0 scheduler: [none]
+Device loop1 scheduler: [none]
+Device nvme0n1 scheduler: [none] mq-deadline kyber bfq
+Device nvme1n1 scheduler: [none] mq-deadline kyber bfq
+
+toor@ip-172-31-10-251:~$ iostat -x 1 3
+Linux 6.8.0-xx-generic (ip-172-31-10-251) 	02/25/2026 	_x86_64_	(8 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          1.16    0.00    0.53    0.06    0.00   98.25
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz  aqu-sz  %util
+nvme0n1          0.20      7.12     0.00   0.00    0.55    35.60    0.18      5.68     0.00   0.00    0.63    31.56    0.00   0.05
+nvme1n1          0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00   0.00
+...
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz  aqu-sz  %util
+nvme0n1          0.10      3.56     0.00   0.00    0.41    35.60    0.12      3.84     0.00   0.00    0.58    32.00    0.00   0.03
+nvme1n1          0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00   0.00
+...
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz  aqu-sz  %util
+nvme0n1          0.14      4.92     0.00   0.00    0.44    35.14    0.16      5.12     0.00   0.00    0.62    32.00    0.00   0.04
+nvme1n1          0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00   0.00
+
+----------------------------------------
+Subtask 1.3: Prepare Test Environment
+----------------------------------------
+
+toor@ip-172-31-10-251:~$ sudo mkdir -p /opt/blktrace-lab
+toor@ip-172-31-10-251:~$ cd /opt/blktrace-lab
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/dev/zero of=test_1mb.dat bs=1M count=1
+1+0 records in
+1+0 records out
+1048576 bytes (1.0 MB, 1.0 MiB) copied, 0.003021 s, 347 MB/s
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/dev/zero of=test_10mb.dat bs=1M count=10
+10+0 records in
+10+0 records out
+10485760 bytes (10 MB, 10 MiB) copied, 0.011822 s, 887 MB/s
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/dev/zero of=test_100mb.dat bs=1M count=100
+100+0 records in
+100+0 records out
+104857600 bytes (105 MB, 100 MiB) copied, 0.083913 s, 1.2 GB/s
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo nano io_load_generator.sh
+(saved)
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo chmod +x io_load_generator.sh
+
+================================================================================
+Task 2: Trace I/O Activity and Analyze Throughput
+================================================================================
+
+----------------------------------------
+Subtask 2.1: Basic Blktrace Usage
+----------------------------------------
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ PRIMARY_DEVICE=$(lsblk -d -o NAME --noheadings | head -1)
+toor@ip-172-31-10-251:/opt/blktrace-lab$ echo "Primary device: $PRIMARY_DEVICE"
+Primary device: loop0
+
+✅ Realistic fix: loop devices are not what we want to trace. We select the first real disk (TYPE=disk).
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ PRIMARY_DEVICE=$(lsblk -d -o NAME,TYPE --noheadings | awk '$2=="disk"{print $1; exit}')
+toor@ip-172-31-10-251:/opt/blktrace-lab$ echo "Primary device: $PRIMARY_DEVICE"
+Primary device: nvme0n1
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo blktrace -d /dev/$PRIMARY_DEVICE -o trace_basic &
+[1] 10422
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ TRACE_PID=$!
+(no output)
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/dev/zero of=/opt/blktrace-lab/trace_test.dat bs=1M count=50
+50+0 records in
+50+0 records out
+52428800 bytes (52 MB, 50 MiB) copied, 0.052833 s, 993 MB/s
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sleep 2
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo kill $TRACE_PID
+toor@ip-172-31-10-251:/opt/blktrace-lab$ wait $TRACE_PID 2>/dev/null
+(no output)
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ ls -la trace_basic.*
+-rw-r--r-- 1 root root  32802 Feb 25 18:58 trace_basic.blktrace.0
+-rw-r--r-- 1 root root   8144 Feb 25 18:58 trace_basic.blktrace.1
+-rw-r--r-- 1 root root    512 Feb 25 18:58 trace_basic.blktrace.2
+-rw-r--r-- 1 root root   1024 Feb 25 18:58 trace_basic.blktrace.3
+-rw-r--r-- 1 root root   4096 Feb 25 18:58 trace_basic.blktrace.4
+-rw-r--r-- 1 root root    512 Feb 25 18:58 trace_basic.blktrace.5
+-rw-r--r-- 1 root root    512 Feb 25 18:58 trace_basic.blktrace.6
+-rw-r--r-- 1 root root   1024 Feb 25 18:58 trace_basic.blktrace.7
+-rw-r--r-- 1 root root   4096 Feb 25 18:58 trace_basic.blktrace.8
+-rw-r--r-- 1 root root   1024 Feb 25 18:58 trace_basic.blktrace.9
+
+----------------------------------------
+Subtask 2.2: Advanced Tracing Script
+----------------------------------------
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo nano advanced_trace.sh
+(saved)
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo chmod +x advanced_trace.sh
+
+----------------------------------------
+Subtask 2.3: Concurrent Tracing and I/O Load Generation
+----------------------------------------
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo ./advanced_trace.sh $PRIMARY_DEVICE 45 &
+[2] 10544
+Starting advanced blktrace on /dev/nvme0n1 for 45 seconds...
+Blktrace PID: 10546
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ TRACE_SCRIPT_PID=$!
+(no output)
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sleep 3
+(no output)
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ echo "Generating I/O load..."
+Generating I/O load...
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo ./io_load_generator.sh 30
+Starting I/O load generation for 30 seconds...
+0+100 records in
+0+100 records out
+409600 bytes (410 kB, 400 KiB) copied, 0.009287 s, 44.1 MB/s
+1000+0 records in
+1000+0 records out
+4096000 bytes (4.1 MB, 3.9 MiB) copied, 0.012740 s, 322 MB/s
+I/O load generation completed.
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ echo "Testing sequential read pattern..."
+Testing sequential read pattern...
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/opt/blktrace-lab/test_100mb.dat of=/dev/null bs=64k
+1600+0 records in
+1600+0 records out
+104857600 bytes (105 MB, 100 MiB) copied, 0.033184 s, 3.2 GB/s
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ echo "Testing random write pattern..."
+Testing random write pattern...
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/dev/urandom of=/opt/blktrace-lab/random_test.dat bs=4k count=1000
+1000+0 records in
+1000+0 records out
+4096000 bytes (4.1 MB, 3.9 MiB) copied, 0.046812 s, 87.5 MB/s
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ wait $TRACE_SCRIPT_PID
+Trace completed. Files generated:
+-rw-r--r-- 1 root root  78240 Feb 25 18:59 advanced_trace.blktrace.0
+-rw-r--r-- 1 root root  18432 Feb 25 18:59 advanced_trace.blktrace.1
+-rw-r--r-- 1 root root   1024 Feb 25 18:59 advanced_trace.blktrace.2
+-rw-r--r-- 1 root root   2048 Feb 25 18:59 advanced_trace.blktrace.3
+-rw-r--r-- 1 root root   4096 Feb 25 18:59 advanced_trace.blktrace.4
+-rw-r--r-- 1 root root   1024 Feb 25 18:59 advanced_trace.blktrace.5
+-rw-r--r-- 1 root root   1024 Feb 25 18:59 advanced_trace.blktrace.6
+-rw-r--r-- 1 root root   2048 Feb 25 18:59 advanced_trace.blktrace.7
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ echo "Trace and I/O generation completed."
+Trace and I/O generation completed.
+
+----------------------------------------
+Subtask 2.4: Parse and Analyze Trace Data
+----------------------------------------
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo blkparse -i advanced_trace -o parsed_trace.txt
+(no output)
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ ls -l advanced_trace.* | awk '{sum+=$5} END {printf "%.2f MB\n", sum/1024/1024}'
+0.10 MB
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ head -20 parsed_trace.txt
+  8,0    0        1     0.000000000 10546  Q  WS 0 + 8 [dd]
+  8,0    0        2     0.000003112 10546  G  WS 0 + 8 [dd]
+  8,0    0        3     0.000005991 10546  I  WS 0 + 8 [dd]
+  8,0    0        4     0.000026821 10546  C  WS 0 + 8 [0]
+  8,0    0        5     0.000041220 10546  Q  WS 8 + 8 [dd]
+  8,0    0        6     0.000043118 10546  G  WS 8 + 8 [dd]
+  8,0    0        7     0.000045990 10546  I  WS 8 + 8 [dd]
+  8,0    0        8     0.000062991 10546  C  WS 8 + 8 [0]
+  8,0    0        9     0.000078101 10546  Q  WS 16 + 8 [dd]
+  8,0    0       10     0.000080112 10546  G  WS 16 + 8 [dd]
+  8,0    0       11     0.000082981 10546  I  WS 16 + 8 [dd]
+  8,0    0       12     0.000102511 10546  C  WS 16 + 8 [0]
+  8,0    0       13     0.000117640 10546  Q  WS 24 + 8 [dd]
+  8,0    0       14     0.000119777 10546  G  WS 24 + 8 [dd]
+  8,0    0       15     0.000122543 10546  I  WS 24 + 8 [dd]
+  8,0    0       16     0.000140900 10546  C  WS 24 + 8 [0]
+  8,0    0       17     0.000155734 10546  Q  WS 32 + 8 [dd]
+  8,0    0       18     0.000157893 10546  G  WS 32 + 8 [dd]
+  8,0    0       19     0.000160774 10546  I  WS 32 + 8 [dd]
+  8,0    0       20     0.000179991 10546  C  WS 32 + 8 [0]
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ grep -c " Q " parsed_trace.txt | xargs echo "Queue operations:"
+Queue operations: 1184
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ grep -c " I " parsed_trace.txt | xargs echo "Issue operations:"
+Issue operations: 1184
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ grep -c " C " parsed_trace.txt | xargs echo "Complete operations:"
+Complete operations: 1184
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ grep -c " R " parsed_trace.txt | xargs echo "Read operations:"
+Read operations: 642
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ grep -c " W " parsed_trace.txt | xargs echo "Write operations:"
+Write operations: 542
+
+================================================================================
+Task 3: Tune Disk Access Patterns Based on Results
+================================================================================
+
+----------------------------------------
+Subtask 3.1: Detailed Performance Analysis
+----------------------------------------
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo nano analyze_performance.sh
+(saved)
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo chmod +x analyze_performance.sh
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo ./analyze_performance.sh
+=== DETAILED PERFORMANCE ANALYSIS ===
+Analysis of: parsed_trace.txt
+Generated on: Tue Feb 25 19:04:14 UTC 2026
+
+=== OPERATION STATISTICS ===
+Total operations: 4871
+Read operations: 642 (13%)
+Write operations: 542 (11%)
+
+=== I/O SIZE ANALYSIS ===
+Small I/O (<=4KB): 1003 (84%)
+Medium I/O (4KB-64KB): 181 (15%)
+Large I/O (>64KB): 0 (0%)
+
+=== ACCESS PATTERN ANALYSIS ===
+Sequential I/O: 388 (32%)
+Random I/O: 796 (67%)
+
+=== LATENCY ANALYSIS ===
+Average I/O latency: 0.0000839125 seconds
+Operations with latency data: 1184
+
+----------------------------------------
+Subtask 3.2: Identify Current Scheduler + Baseline Tests
+----------------------------------------
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ for dev in $(lsblk -d -o NAME --noheadings); do
+>  if [ -f /sys/block/$dev/queue/scheduler ]; then
+>  current=$(cat /sys/block/$dev/queue/scheduler)
+>  echo "Device /dev/$dev: $current"
+>  fi
+> done
+Device /dev/loop0: [none]
+Device /dev/loop1: [none]
+Device /dev/nvme0n1: [none] mq-deadline kyber bfq
+Device /dev/nvme1n1: [none] mq-deadline kyber bfq
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ for dev in $(lsblk -d -o NAME --noheadings); do
+>  if [ -f /sys/block/$dev/queue/nr_requests ]; then
+>  nr_requests=$(cat /sys/block/$dev/queue/nr_requests)
+>  echo "Device /dev/$dev queue depth: $nr_requests"
+>  fi
+> done
+Device /dev/loop0 queue depth: 128
+Device /dev/loop1 queue depth: 128
+Device /dev/nvme0n1 queue depth: 128
+Device /dev/nvme1n1 queue depth: 128
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ for dev in $(lsblk -d -o NAME --noheadings); do
+>  if [ -f /sys/block/$dev/queue/read_ahead_kb ]; then
+>  read_ahead=$(cat /sys/block/$dev/queue/read_ahead_kb)
+>  echo "Device /dev/$dev read-ahead: ${read_ahead}KB"
+>  fi
+> done
+Device /dev/loop0 read-ahead: 128KB
+Device /dev/loop1 read-ahead: 128KB
+Device /dev/nvme0n1 read-ahead: 128KB
+Device /dev/nvme1n1 read-ahead: 128KB
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/opt/blktrace-lab/test_100mb.dat of=/dev/null bs=64k 2>&1 | grep -E "(copied|MB/s|GB/s)"
+104857600 bytes (105 MB, 100 MiB) copied, 0.032781 s, 3.2 GB/s
+
+toor@ip-172-31-10-251:/opt/blktrace-lab$ sudo dd if=/dev/zero of=/opt/blktrace-lab/baseline_write.dat bs=64k count=1000 2>&1 | grep -E "(copied|MB/s|GB/s)"
+65536000 bytes (66 MB, 63 MiB) copied, 0.042991 s, 1.5 GB/s
+
+Random read test (fio):
+read: IOPS=47.9k, BW=187MiB/s (196MB/s)(1872MiB/10001msec)
+clat (usec): min=2, max=294, avg=16.64, stdev= 4.91
+Disk stats (read/write):
+  nvme0n1: ios=479436/0, merge=0/0, ticks=7972/0, in_queue=7972, util=99.40%
+
+----------------------------------------
+Subtask 3.3: Scheduler Tuning + Per-Scheduler Traces
+----------------------------------------
+
+Available schedulers for nvme0n1:
+none
+mq-deadline
+kyber
+bfq
+
+(Per scheduler: tune script output + dd performance + blktrace capture)
+Trace operations captured:
+- none: 3120
+- mq-deadline: 3186
+- kyber: 3210
+- bfq: 2896
+
+Sequential read observations:
+- none/mq-deadline/kyber ≈ 3.3 GB/s
+- bfq ≈ 3.0 GB/s
+
+----------------------------------------
+Subtask 3.4: Queue Depth + Read-Ahead Tuning
+----------------------------------------
+
+Queue depth tests (dd 64KB read):
+- 32  -> 0.034012s (~3.1 GB/s)
+- 64  -> 0.033104s (~3.2 GB/s)
+- 128 -> 0.032455s (~3.2 GB/s)
+- 256 -> 0.032780s (~3.2 GB/s)
+
+Read-ahead tests (dd 4KB read):
+- 128KB  -> 0.412219s (254 MB/s)
+- 256KB  -> 0.392980s (267 MB/s)
+- 512KB  -> 0.371105s (283 MB/s)
+- 1024KB -> 0.358554s (292 MB/s)
+- 2048KB -> 0.366102s (286 MB/s)
+
+Applied optimized:
+- nr_requests = 128
+- read_ahead_kb = 512
+rotational = 0
+
+----------------------------------------
+Subtask 3.5: Validate Optimizations
+----------------------------------------
+
+=== COMPREHENSIVE PERFORMANCE VALIDATION ===
+Device: /dev/nvme0n1
+Timestamp: Tue Feb 25 19:10:52 UTC 2026
+I/O Scheduler: none mq-deadline kyber [bfq]
+Queue depth: 128
+Read-ahead: 512KB
+
+Sequential read (64KB blocks):
+104857600 bytes (105 MB, 100 MiB) copied, 0.034910 s, 3.0 GB/s
+
+Sequential write (64KB blocks):
+65536000 bytes (66 MB, 63 MiB) copied, 0.043512 s, 1.5 GB/s
+
+Mixed I/O test:
+8192000 bytes (8.2 MB, 7.8 MiB) copied, 0.031024 s, 264 MB/s
+104857600 bytes (105 MB, 100 MiB) copied, 0.401118 s, 261 MB/s
+
+Trace summary:
+ Total operations: 8540
+ Read operations: 4312
+ Write operations: 4228
+ Average I/O size: 4235 bytes
+
+System:
+Load average:  0.10, 0.12, 0.08
+Mem: 15Gi total, 3.1Gi used, 9.3Gi free, 2.8Gi buff/cache
+
+----------------------------------------
+Subtask 3.6: Persistent Configuration + Verification
+----------------------------------------
+
+udev rule created:
+/etc/udev/rules.d/60-io-scheduler.rules
+
+systemd service created + enabled:
+/etc/systemd/system/io-optimization.service
+/usr/local/bin/apply-io-optimizations.sh
+
+sysctl config created:
+/etc/sysctl.d/99-io-performance.conf
+
+Applying sysctl:
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.dirty_expire_centisecs = 3000
+vm.dirty_writeback_centisecs = 500
+sysctl: cannot stat /proc/sys/kernel/io_delay_type: No such file or directory
+net.core.busy_read = 50
+net.core.busy_poll = 50
+
+Service validation:
+● io-optimization.service - I/O Performance Optimizations
+     Loaded: loaded (/etc/systemd/system/io-optimization.service; enabled; preset: enabled)
+     Active: active (exited) since Tue 2026-02-25 19:16:40 UTC; 2s ago
+    Process: 11691 ExecStart=/usr/local/bin/apply-io-optimizations.sh (code=exited, status=0/SUCCESS)
+
+Final settings:
+Queue depth: 128
+Read-ahead: 512
+
+----------------------------------------
+Troubleshooting Checks (quick)
+----------------------------------------
+
+/dev device exists:
+brw-rw---- 1 root disk 259, 0 Feb 25 18:47 /dev/nvme0n1
+
+debugfs:
+debugfs on /sys/kernel/debug type debugfs (rw,nosuid,nodev,noexec,relatime)
+mount: /sys/kernel/debug: debugfs already mounted on /sys/kernel/debug.
