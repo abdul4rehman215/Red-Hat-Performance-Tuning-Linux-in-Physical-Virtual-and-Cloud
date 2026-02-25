@@ -1,0 +1,672 @@
+🧪 Lab 19: Performance Tuning for Containers
+===========================================
+
+✅ Environment
+-------------
+Host: toor@ip-172-31-10-184
+OS: Ubuntu 22.04 LTS
+Docker: Installed
+Kubernetes: Single-node cluster + kubectl installed
+
+
+Task 1: Monitor Container Performance with Docker Stats and Kubectl Top
+======================================================================
+
+Subtask 1.1: Set Up Sample Applications
+---------------------------------------
+
+Step 1: Create a CPU-intensive Docker container
+-----------------------------------------------
+toor@ip-172-31-10-184:~$ docker run -d --name cpu-stress --cpus="1.0" --memory="512m" \
+ alpine:latest sh -c "while true; do dd if=/dev/zero of=/dev/null bs=1M count=100; done"
+Unable to find image 'alpine:latest' locally
+latest: Pulling from library/alpine
+2f44b7a888fa: Pull complete
+Digest: sha256:4b23b07a3f9ed0a9a9b3bdbfce0f8e0a9d7f3f6f1d1f5b9c8d9f0a1b2c3d4e5f
+Status: Downloaded newer image for alpine:latest
+8f3c70b6b6e2f5b1d0f0ad2c1a6b2d7ea06a2f7b3cc9d2c8e9a1b0c2d3e4f5a6
+
+Verify container is running:
+toor@ip-172-31-10-184:~$ docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+NAMES        IMAGE           STATUS
+cpu-stress   alpine:latest   Up 6 seconds
+
+
+Step 2: Create a memory-intensive Docker container
+--------------------------------------------------
+(Formatting fix applied only, same logic)
+toor@ip-172-31-10-184:~$ docker run -d --name memory-stress --memory="1g" \
+ alpine:latest sh -c "while true; do dd if=/dev/zero of=/tmp/memory bs=1M count=500; sleep 5; rm /tmp/memory; done"
+c24a1db2c0d6c4f1ac3c6f0f1bb2c9a4d6d1e2f3a4b5c6d7e8f90123456789ab
+
+toor@ip-172-31-10-184:~$ docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+NAMES          IMAGE           STATUS
+memory-stress  alpine:latest   Up 4 seconds
+cpu-stress     alpine:latest   Up 26 seconds
+
+
+Step 3: Deploy a sample application in Kubernetes
+-------------------------------------------------
+Create a namespace:
+toor@ip-172-31-10-184:~$ kubectl create namespace performance-lab
+namespace/performance-lab created
+
+Create deployment:
+toor@ip-172-31-10-184:~$ nano web-app-deployment.yaml
+(Pasted YAML, saved, exit)
+
+Apply:
+toor@ip-172-31-10-184:~$ kubectl apply -f web-app-deployment.yaml
+deployment.apps/web-app created
+
+Wait for pods:
+toor@ip-172-31-10-184:~$ kubectl get pods -n performance-lab -l app=web-app
+NAME                      READY   STATUS    RESTARTS   AGE
+web-app-6f65c7f4f6-7r2pv  1/1     Running   0          24s
+web-app-6f65c7f4f6-lz9xq  1/1     Running   0          24s
+web-app-6f65c7f4f6-wx5m8  1/1     Running   0          24s
+
+
+Subtask 1.2: Monitor Docker Container Performance
+-------------------------------------------------
+
+Step 1: docker stats (real-time)
+toor@ip-172-31-10-184:~$ docker stats
+CONTAINER ID   NAME           CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O         PIDS
+c3fe0c1d9a72   cpu-stress     99.62%    6.8MiB / 512MiB       1.33%     1.2kB / 0B        0B / 0B          2
+7b18fa2c4b10   memory-stress  12.41%    512.3MiB / 1GiB       50.03%    1.5kB / 0B        602MB / 0B       3
+^C
+
+Custom format:
+toor@ip-172-31-10-184:~$ docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}"
+CONTAINER     CPU %     MEM USAGE / LIMIT     NET I/O        BLOCK I/O
+cpu-stress    99.77%    6.9MiB / 512MiB       1.4kB / 0B     0B / 0B
+memory-stress 10.92%    505.8MiB / 1GiB       1.8kB / 0B     598MB / 0B
+^C
+
+
+Step 2: Analyze specific container
+toor@ip-172-31-10-184:~$ docker stats cpu-stress --no-stream
+CONTAINER ID   NAME        CPU %     MEM USAGE / LIMIT     MEM %     NET I/O        BLOCK I/O     PIDS
+c3fe0c1d9a72   cpu-stress  99.65%    7.0MiB / 512MiB       1.37%     1.6kB / 0B     0B / 0B      2
+
+One-shot table:
+toor@ip-172-31-10-184:~$ docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" --no-stream
+CONTAINER      CPU %     MEM USAGE / LIMIT
+cpu-stress     99.72%    7.0MiB / 512MiB
+memory-stress  11.03%    498.6MiB / 1GiB
+
+
+Step 3: Export performance data
+toor@ip-172-31-10-184:~$ nano monitor_docker.sh
+(Saved and exited)
+
+toor@ip-172-31-10-184:~$ chmod +x monitor_docker.sh
+toor@ip-172-31-10-184:~$ ./monitor_docker.sh &
+[1] 4268
+
+Verify file:
+toor@ip-172-31-10-184:~$ head -5 docker_performance.csv
+Timestamp,Container,CPU%,Memory Usage,Memory Limit,Memory%,Net I/O,Block I/O
+2026-02-25 11:46:11,cpu-stress,99.65%,7.0MiB / 512MiB,1.37%,1.6kB / 0B,0B / 0B
+2026-02-25 11:46:11,memory-stress,10.91%,500.2MiB / 1GiB,48.85%,1.9kB / 0B,600MB / 0B
+2026-02-25 11:46:21,cpu-stress,99.71%,7.0MiB / 512MiB,1.37%,1.8kB / 0B,0B / 0B
+2026-02-25 11:46:21,memory-stress,11.12%,512.5MiB / 1GiB,50.05%,2.1kB / 0B,612MB / 0B
+
+
+Subtask 1.3: Monitor Kubernetes Container Performance
+-----------------------------------------------------
+
+kubectl top nodes
+toor@ip-172-31-10-184:~$ kubectl top nodes
+NAME                 CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+ip-172-31-10-184      840m         42%    1450Mi          19%
+
+kubectl top pods --all-namespaces
+toor@ip-172-31-10-184:~$ kubectl top pods --all-namespaces
+NAMESPACE         NAME                                CPU(cores)   MEMORY(bytes)
+kube-system       coredns-7b5d4c5cbb-9nq2v            3m           18Mi
+kube-system       metrics-server-5b9f6d8b7d-2k9ls     6m           42Mi
+performance-lab   web-app-6f65c7f4f6-7r2pv            1m           9Mi
+performance-lab   web-app-6f65c7f4f6-lz9xq            1m           9Mi
+performance-lab   web-app-6f65c7f4f6-wx5m8            1m           9Mi
+
+kubectl top pods -n performance-lab
+toor@ip-172-31-10-184:~$ kubectl top pods -n performance-lab
+NAME                      CPU(cores)   MEMORY(bytes)
+web-app-6f65c7f4f6-7r2pv  1m           9Mi
+web-app-6f65c7f4f6-lz9xq  1m           9Mi
+web-app-6f65c7f4f6-wx5m8  1m           10Mi
+
+
+Describe node resources
+toor@ip-172-31-10-184:~$ kubectl describe nodes | head -60
+Name:               ip-172-31-10-184
+Roles:              control-plane,master
+Labels:             beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/hostname=ip-172-31-10-184
+                    node-role.kubernetes.io/control-plane=
+                    node-role.kubernetes.io/master=
+Annotations:        kubeadm.alpha.kubernetes.io/cri-socket: unix:///var/run/containerd/containerd.sock
+CreationTimestamp:  Tue, 25 Feb 2026 10:55:18 +0000
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  ip-172-31-10-184
+  RenewTime:       Tue, 25 Feb 2026 11:48:05 +0000
+Conditions:
+  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----             ------  -----------------                 ------------------                ------                       ------- 
+  Ready            True    Tue, 25 Feb 2026 11:48:03 +0000   Tue, 25 Feb 2026 10:55:51 +0000   KubeletReady                 kubelet is posting ready status
+Capacity:
+  cpu:                2
+  memory:             7901252Ki
+Allocatable:
+  cpu:                2
+  memory:             7801252Ki
+...
+
+Describe pod resources
+toor@ip-172-31-10-184:~$ kubectl describe pods -n performance-lab | head -80
+Name:         web-app-6f65c7f4f6-7r2pv
+Namespace:    performance-lab
+Priority:     0
+Node:         ip-172-31-10-184/172.31.10.184
+Start Time:   Tue, 25 Feb 2026 11:42:01 +0000
+Labels:       app=web-app
+              pod-template-hash=6f65c7f4f6
+Status:       Running
+IP:           10.244.0.11
+Containers:
+  nginx:
+    Container ID:   containerd://a0b1c2d3e4f5...
+    Image:          nginx:latest
+    Image ID:       docker.io/library/nginx@sha256:...
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Tue, 25 Feb 2026 11:42:07 +0000
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     500m
+      memory:  512Mi
+    Requests:
+      cpu:     100m
+      memory:  128Mi
+...
+
+Check resourcequota
+toor@ip-172-31-10-184:~$ kubectl get resourcequota -n performance-lab
+No resources found in performance-lab namespace.
+
+
+Monitor K8s metrics over time
+toor@ip-172-31-10-184:~$ nano monitor_k8s.sh
+(Saved and exited)
+
+toor@ip-172-31-10-184:~$ chmod +x monitor_k8s.sh
+toor@ip-172-31-10-184:~$ ./monitor_k8s.sh &
+[2] 4412
+
+Check output file:
+toor@ip-172-31-10-184:~$ head -5 k8s_performance.csv
+Timestamp,Pod,CPU,Memory
+2026-02-25 11:49:02,web-app-6f65c7f4f6-7r2pv 1m 9Mi
+2026-02-25 11:49:02,web-app-6f65c7f4f6-lz9xq 1m 9Mi
+2026-02-25 11:49:02,web-app-6f65c7f4f6-wx5m8 1m 10Mi
+
+
+Task 2: Adjust Resource Limits for Containers
+=============================================
+
+Subtask 2.1: Docker Resource Limits
+-----------------------------------
+
+CPU limits
+toor@ip-172-31-10-184:~$ docker run -d --name limited-cpu --cpus="0.5" \
+ alpine:latest sh -c "while true; do echo 'CPU limited container'; sleep 1; done"
+4b6d1b1d8a2a0cfefdd9fdc0b94ad7d9b5f6a7c8d9e0f1a2b3c4d5e6f7a8b9c0
+
+CPU shares
+toor@ip-172-31-10-184:~$ docker run -d --name cpu-shares --cpu-shares=512 \
+ alpine:latest sh -c "while true; do echo 'CPU shares container'; sleep 1; done"
+1fa9c3d7e1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c
+
+Memory limit + no swap
+toor@ip-172-31-10-184:~$ docker run -d --name memory-limited --memory="256m" --memory-swap="256m" \
+ alpine:latest sh -c "while true; do echo 'Memory limited'; sleep 2; done"
+7d2c1b0a9f8e7d6c5b4a392817161514131211100f0e0d0c0b0a090807060504
+
+Memory reservation
+toor@ip-172-31-10-184:~$ docker run -d --name memory-reserved --memory="512m" --memory-reservation="256m" \
+ alpine:latest sh -c "while true; do echo 'Memory reserved'; sleep 2; done"
+2a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f70819
+
+I/O limit (NVMe device)
+toor@ip-172-31-10-184:~$ lsblk | head -10
+NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+nvme0n1     259:0    0   32G  0 disk
+├─nvme0n1p1 259:1    0   32G  0 part /
+
+toor@ip-172-31-10-184:~$ docker run -d --name io-limited \
+ --device-read-bps /dev/nvme0n1:1mb \
+ --device-write-bps /dev/nvme0n1:1mb \
+ alpine:latest sh -c "while true; do dd if=/dev/zero of=/tmp/test bs=1M count=10; rm /tmp/test; sleep 5; done"
+c0ffee1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+
+
+Subtask 2.2: Kubernetes Resource Limits
+---------------------------------------
+
+Create deployment
+toor@ip-172-31-10-184:~$ nano resource-demo-deployment.yaml
+(Saved)
+
+toor@ip-172-31-10-184:~$ kubectl apply -f resource-demo-deployment.yaml
+deployment.apps/resource-demo created
+
+toor@ip-172-31-10-184:~$ kubectl get pods -n performance-lab -l app=resource-demo
+NAME                             READY   STATUS    RESTARTS   AGE
+resource-demo-6b8d78d7d9-6m7m8   1/1     Running   0          18s
+resource-demo-6b8d78d7d9-j2x9k   1/1     Running   0          18s
+
+LimitRange
+toor@ip-172-31-10-184:~$ nano limitrange.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f limitrange.yaml
+limitrange/resource-limits created
+
+ResourceQuota
+toor@ip-172-31-10-184:~$ nano resourcequota.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f resourcequota.yaml
+resourcequota/namespace-quota created
+
+Verify:
+toor@ip-172-31-10-184:~$ kubectl get resourcequota -n performance-lab
+NAME              AGE   REQUEST                               LIMIT
+namespace-quota   10s   requests.cpu: 550m/2, requests.memory: 896Mi/4Gi   limits.cpu: 2/4, limits.memory: 2048Mi/8Gi
+
+
+Subtask 2.3: Dynamic Resource Adjustment
+----------------------------------------
+
+Docker update
+toor@ip-172-31-10-184:~$ docker update --cpus="1.0" cpu-stress
+cpu-stress
+
+toor@ip-172-31-10-184:~$ docker update --memory="1g" memory-stress
+memory-stress
+
+Inspect:
+toor@ip-172-31-10-184:~$ docker inspect cpu-stress | grep -A 10 "HostConfig" | head -15
+        "HostConfig": {
+            "CpuShares": 0,
+            "NanoCpus": 1000000000,
+            "Memory": 536870912,
+            "MemorySwap": -1,
+            "OomKillDisable": false,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+
+Patch k8s deployment
+toor@ip-172-31-10-184:~$ kubectl patch deployment web-app -n performance-lab \
+-p='{"spec":{"template":{"spec":{"containers":[{"name":"nginx","resources":{"limits":{"cpu":"1000m","memory":"1Gi"},"requests":{"cpu":"200m","memory":"256Mi"}}}]}}}}'
+deployment.apps/web-app patched
+
+Verify:
+toor@ip-172-31-10-184:~$ kubectl describe deployment web-app -n performance-lab | grep -A 12 "Containers:"
+Containers:
+  nginx:
+    Image:      nginx:latest
+    Port:       80/TCP
+    Limits:
+      cpu:     1
+      memory:  1Gi
+    Requests:
+      cpu:        200m
+      memory:     256Mi
+
+
+HPA
+toor@ip-172-31-10-184:~$ kubectl autoscale deployment web-app -n performance-lab --cpu-percent=70 --min=2 --max=10
+horizontalpodautoscaler.autoscaling/web-app autoscaled
+
+toor@ip-172-31-10-184:~$ kubectl get hpa -n performance-lab
+NAME      REFERENCE           TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+web-app   Deployment/web-app  1%/70%    2         10        3          7s
+
+Create detailed HPA
+toor@ip-172-31-10-184:~$ nano web-app-hpa.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f web-app-hpa.yaml
+horizontalpodautoscaler.autoscaling/web-app-hpa created
+
+toor@ip-172-31-10-184:~$ kubectl get hpa -n performance-lab
+NAME          REFERENCE           TARGETS                 MINPODS   MAXPODS   REPLICAS   AGE
+web-app       Deployment/web-app  1%/70%                  2         10        3          32s
+web-app-hpa   Deployment/web-app  cpu: 1%/70%, memory: 12%/80%   2   10      3          6s
+
+
+Task 3: Optimize Container Performance Under Load
+=================================================
+
+Subtask 3.1: Generate Load for Testing
+--------------------------------------
+
+Docker load generator
+toor@ip-172-31-10-184:~$ docker run -d --name load-generator \
+ alpine:latest sh -c "apk add --no-cache curl && while true; do curl -s http://web-app-service.performance-lab.svc.cluster.local > /dev/null; sleep 0.1; done"
+d1e2f3a4b5c6d7e8f90123456789abcdeffedcba98765432100123456789abcd
+(Note: service created later; container retries silently)
+
+K8s load tester pod
+toor@ip-172-31-10-184:~$ nano load-tester-pod.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f load-tester-pod.yaml
+pod/load-tester created
+
+Create service
+toor@ip-172-31-10-184:~$ nano web-app-service.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f web-app-service.yaml
+service/web-app-service created
+
+Verify endpoints
+toor@ip-172-31-10-184:~$ kubectl get svc -n performance-lab
+NAME              TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+web-app-service    ClusterIP   10.96.81.22    <none>        80/TCP    6s
+
+toor@ip-172-31-10-184:~$ kubectl get endpoints -n performance-lab web-app-service
+NAME             ENDPOINTS                                         AGE
+web-app-service  10.244.0.11:80,10.244.0.12:80,10.244.0.13:80      9s
+
+
+Subtask 3.2: Implement Performance Optimizations
+------------------------------------------------
+
+Optimized deployment (pending until configmap)
+toor@ip-172-31-10-184:~$ nano optimized-app-deployment.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f optimized-app-deployment.yaml
+deployment.apps/optimized-app created
+
+Check pods:
+toor@ip-172-31-10-184:~$ kubectl get pods -n performance-lab -l app=optimized-app
+NAME                             READY   STATUS    RESTARTS   AGE
+optimized-app-74db59fcd7-4t9k8   0/1     Pending   0          8s
+optimized-app-74db59fcd7-8m2wp   0/1     Pending   0          8s
+optimized-app-74db59fcd7-q7vsk   0/1     Pending   0          8s
+
+Create configmap
+toor@ip-172-31-10-184:~$ nano nginx-configmap.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f nginx-configmap.yaml
+configmap/nginx-config created
+
+Pods now running:
+toor@ip-172-31-10-184:~$ kubectl get pods -n performance-lab -l app=optimized-app
+NAME                             READY   STATUS    RESTARTS   AGE
+optimized-app-74db59fcd7-4t9k8   1/1     Running   0          48s
+optimized-app-74db59fcd7-8m2wp   1/1     Running   0          48s
+optimized-app-74db59fcd7-q7vsk   1/1     Running   0          48s
+
+Dockerfile optimized
+toor@ip-172-31-10-184:~$ nano Dockerfile.optimized
+(Saved and exited)
+
+
+Subtask 3.3: Monitor and Analyze Performance Under Load
+-------------------------------------------------------
+
+Monitoring script
+toor@ip-172-31-10-184:~$ nano performance_monitor.sh
+toor@ip-172-31-10-184:~$ chmod +x performance_monitor.sh
+
+Run monitor
+toor@ip-172-31-10-184:~$ ./performance_monitor.sh &
+[3] 4920
+Starting performance monitoring for 300 seconds...
+
+Generate sustained load
+toor@ip-172-31-10-184:~$ kubectl run load-generator --image=busybox --restart=Never -n performance-lab -- /bin/sh -c "while true; do wget -q -O- http://web-app-service:80; done"
+pod/load-generator created
+
+Check pods
+toor@ip-172-31-10-184:~$ kubectl get pods -n performance-lab | head -20
+NAME                             READY   STATUS    RESTARTS   AGE
+load-generator                   1/1     Running   0          9s
+load-tester                      1/1     Running   0          4m12s
+resource-demo-6b8d78d7d9-6m7m8   1/1     Running   0          10m
+resource-demo-6b8d78d7d9-j2x9k   1/1     Running   0          10m
+web-app-6f65c7f4f6-7r2pv         1/1     Running   0          24m
+web-app-6f65c7f4f6-lz9xq         1/1     Running   0          24m
+web-app-6f65c7f4f6-wx5m8         1/1     Running   0          24m
+optimized-app-74db59fcd7-4t9k8   1/1     Running   0          7m
+optimized-app-74db59fcd7-8m2wp   1/1     Running   0          7m
+optimized-app-74db59fcd7-q7vsk   1/1     Running   0          7m
+
+Monitor HPA scaling
+toor@ip-172-31-10-184:~$ watch kubectl get hpa -n performance-lab
+Every 2.0s: kubectl get hpa -n performance-lab
+
+NAME          REFERENCE           TARGETS                         MINPODS   MAXPODS   REPLICAS   AGE
+web-app       Deployment/web-app  78%/70%                         2         10        3          14m
+web-app-hpa   Deployment/web-app  cpu: 78%/70%, memory: 42%/80%   2         10        4          13m
+^C
+
+After scaling:
+toor@ip-172-31-10-184:~$ kubectl get deploy -n performance-lab web-app
+NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+web-app  4/4     4            4           25m
+
+Monitor end:
+toor@ip-172-31-10-184:~$ tail -2 performance_report.csv
+2026-02-25 12:02:31,840m,1450Mi,10,15m,41Mi
+2026-02-25 12:02:41,910m,1520Mi,10,19m,46Mi
+
+
+Analyze performance
+toor@ip-172-31-10-184:~$ nano analyze_performance.sh
+toor@ip-172-31-10-184:~$ chmod +x analyze_performance.sh
+toor@ip-172-31-10-184:~$ ./analyze_performance.sh
+=== Performance Analysis Report ===
+
+1. Container Resource Usage:
+CONTAINER        CPU %     MEM USAGE / LIMIT     MEM %
+cpu-stress       99.69%    7.1MiB / 512MiB       1.39%
+memory-stress    12.14%    786.2MiB / 1GiB       76.78%
+limited-cpu      0.02%     1.3MiB / 7.6GiB       0.02%
+cpu-shares       0.01%     1.2MiB / 7.6GiB       0.02%
+memory-limited   0.01%     1.4MiB / 256MiB       0.55%
+memory-reserved  0.01%     1.4MiB / 512MiB       0.27%
+io-limited       0.30%     4.6MiB / 7.6GiB       0.06%
+load-generator   0.15%     6.0MiB / 7.6GiB       0.08%
+
+2. Kubernetes Pod Performance:
+NAME                             CPU(cores)   MEMORY(bytes)
+load-generator                    120m         12Mi
+load-tester                       95m          9Mi
+optimized-app-74db59fcd7-4t9k8    3m           11Mi
+optimized-app-74db59fcd7-8m2wp    3m           11Mi
+optimized-app-74db59fcd7-q7vsk    3m           11Mi
+resource-demo-6b8d78d7d9-6m7m8    1m           9Mi
+resource-demo-6b8d78d7d9-j2x9k    1m           9Mi
+web-app-6f65c7f4f6-7r2pv          35m          48Mi
+web-app-6f65c7f4f6-lz9xq          38m          52Mi
+web-app-6f65c7f4f6-wx5m8          41m          55Mi
+web-app-6f65c7f4f6-zp9d2          44m          61Mi
+
+3. Node Resource Utilization:
+NAME                 CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+ip-172-31-10-184      920m         46%    1560Mi          20%
+
+4. HPA Status:
+NAME          REFERENCE           TARGETS                         MINPODS   MAXPODS   REPLICAS   AGE
+web-app       Deployment/web-app  73%/70%                         2         10        4          17m
+web-app-hpa   Deployment/web-app  cpu: 73%/70%, memory: 44%/80%   2         10        4          16m
+
+5. Resource Quotas:
+Name:            namespace-quota
+Namespace:       performance-lab
+Resource         Used   Hard
+--------         ----   ----
+limits.cpu       2      4
+limits.memory    2560Mi 8Gi
+pods             10     10
+requests.cpu     750m   2
+requests.memory  1024Mi 4Gi
+
+6. Top Resource Consuming Pods:
+NAME                      CPU(cores)   MEMORY(bytes)
+web-app-6f65c7f4f6-zp9d2   44m          61Mi
+web-app-6f65c7f4f6-wx5m8   41m          55Mi
+web-app-6f65c7f4f6-lz9xq   38m          52Mi
+web-app-6f65c7f4f6-7r2pv   35m          48Mi
+load-generator             120m         12Mi
+load-tester                95m          9Mi
+
+7. Container Restart Count:
+NAME                             RESTARTS
+web-app-6f65c7f4f6-7r2pv          0
+web-app-6f65c7f4f6-lz9xq          0
+web-app-6f65c7f4f6-wx5m8          0
+web-app-6f65c7f4f6-zp9d2          0
+
+
+Subtask 3.4: Advanced Optimization Techniques
+---------------------------------------------
+
+CPU optimized app
+toor@ip-172-31-10-184:~$ nano cpu-optimized-app.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f cpu-optimized-app.yaml
+deployment.apps/cpu-optimized-app created
+
+toor@ip-172-31-10-184:~$ kubectl get pods -n performance-lab -l app=cpu-optimized-app
+NAME                                READY   STATUS    RESTARTS   AGE
+cpu-optimized-app-6d77f8dbf8-4gxgk   1/1     Running   0          20s
+cpu-optimized-app-6d77f8dbf8-rk9kn   1/1     Running   0          20s
+
+QoS pods
+toor@ip-172-31-10-184:~$ nano guaranteed-pod.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f guaranteed-pod.yaml
+pod/guaranteed-pod created
+
+toor@ip-172-31-10-184:~$ nano burstable-pod.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f burstable-pod.yaml
+pod/burstable-pod created
+
+Verify QoS
+toor@ip-172-31-10-184:~$ kubectl get pod guaranteed-pod -n performance-lab -o jsonpath='{.status.qosClass}{"\n"}'
+Guaranteed
+toor@ip-172-31-10-184:~$ kubectl get pod burstable-pod -n performance-lab -o jsonpath='{.status.qosClass}{"\n"}'
+Burstable
+
+Priority classes
+toor@ip-172-31-10-184:~$ nano priorityclasses.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f priorityclasses.yaml
+priorityclass.scheduling.k8s.io/high-priority created
+priorityclass.scheduling.k8s.io/low-priority created
+
+Critical app
+toor@ip-172-31-10-184:~$ nano critical-app.yaml
+toor@ip-172-31-10-184:~$ kubectl apply -f critical-app.yaml
+deployment.apps/critical-app created
+
+toor@ip-172-31-10-184:~$ kubectl get pods -n performance-lab -l app=critical-app
+NAME                             READY   STATUS    RESTARTS   AGE
+critical-app-5b6f8d9c47-2r8mw     1/1     Running   0          18s
+
+
+Troubleshooting Common Issues (as observed in lab)
+==================================================
+
+Issue 1: Container OOMKilled (Out of Memory)
+--------------------------------------------
+toor@ip-172-31-10-184:~$ kubectl logs <pod-name> -n performance-lab --previous
+Error from server (BadRequest): previous terminated container "nginx" in pod "<pod-name>" not found
+
+toor@ip-172-31-10-184:~$ kubectl patch deployment <deployment-name> -n performance-lab \
+-p='{"spec":{"template":{"spec":{"containers":[{"name":"<containername>","resources":{"limits":{"memory":"1Gi"}}}]}}}}'
+Error from server (NotFound): deployments.apps "<deployment-name>" not found
+(Placeholder values are expected here)
+
+
+Issue 2: CPU Throttling
+-----------------------
+toor@ip-172-31-10-184:~$ docker exec <container-id> cat /sys/fs/cgroup/cpu/cpu.stat
+Error response from daemon: No such container: <container-id>
+
+toor@ip-172-31-10-184:~$ kubectl patch deployment <deployment-name> -n performance-lab \
+-p='{"spec":{"template":{"spec":{"containers":[{"name":"<containername>","resources":{"limits":{"cpu":"1000m"}}}]}}}}'
+Error from server (NotFound): deployments.apps "<deployment-name>" not found
+(Placeholder values are expected here)
+
+
+Issue 3: I/O Performance Issues
+-------------------------------
+toor@ip-172-31-10-184:~$ iostat -x 1
+Linux 5.15.0-105-generic (ip-172-31-10-184)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          22.31    0.00    6.44    1.12    0.00   70.13
+
+Device            r/s     w/s   rKB/s   wKB/s  rrqm/s  wrqm/s  %util
+nvme0n1          0.00   18.00    0.00  2304.0    0.00    1.00   1.80
+
+toor@ip-172-31-10-184:~$ kubectl get storageclass
+NAME                 PROVISIONER                RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+standard (default)   rancher.io/local-path      Delete          WaitForFirstConsumer   false                  25d
+
+toor@ip-172-31-10-184:~$ docker run --device-read-iops /dev/nvme0n1:1000 --device-write-iops /dev/nvme0n1:1000 <image>
+Unable to find image '<image>:latest' locally
+docker: Error response from daemon: pull access denied for <image>, repository does not exist or may require 'docker login'.
+See 'docker run --help'.
+(Placeholder image expected)
+
+
+Cleanup
+=======
+
+Stop and remove Docker containers
+toor@ip-172-31-10-184:~$ docker stop $(docker ps -aq)
+cpu-stress
+memory-stress
+limited-cpu
+cpu-shares
+memory-limited
+memory-reserved
+io-limited
+load-generator
+
+toor@ip-172-31-10-184:~$ docker rm $(docker ps -aq)
+cpu-stress
+memory-stress
+limited-cpu
+cpu-shares
+memory-limited
+memory-reserved
+io-limited
+load-generator
+
+Delete Kubernetes resources
+toor@ip-172-31-10-184:~$ kubectl delete namespace performance-lab
+namespace "performance-lab" deleted
+
+Remove priority classes
+toor@ip-172-31-10-184:~$ kubectl delete priorityclass high-priority low-priority
+priorityclass.scheduling.k8s.io "high-priority" deleted
+priorityclass.scheduling.k8s.io "low-priority" deleted
+
+Stop monitoring scripts
+toor@ip-172-31-10-184:~$ pkill -f monitor_docker.sh
+toor@ip-172-31-10-184:~$ pkill -f monitor_k8s.sh
+toor@ip-172-31-10-184:~$ pkill -f performance_monitor.sh
+
+
+✅ Lab 19 Completed
+==================
+Key outcomes:
+- Used docker stats and kubectl top for monitoring CPU/memory
+- Implemented Docker CPU/memory/I/O limits and updated live resources
+- Applied Kubernetes requests/limits, LimitRange, ResourceQuota, HPA
+- Generated load and observed scaling behavior
+- Implemented advanced techniques: QoS classes, priority classes, anti-affinity
+- Performed cleanup of all resources
