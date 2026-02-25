@@ -48,20 +48,30 @@ By the end of this lab, I was able to:
 ```text
 lab09-memory-utilization-tuning/
 ├── README.md
+├── commands.sh
+├── output.txt
+├── interview_qna.md
+├── troubleshooting.md
 ├── reports/
 │   ├── memory_baseline.txt
 │   ├── performance_analysis.txt
 │   └── optimization_validation_*.log
 ├── scripts/
 │   ├── memory_tune.sh
+│   ├── explain_free.sh
 │   ├── monitor_memory.sh
+│   ├── explain_vmstat.sh
 │   ├── advanced_memory_monitor.sh
+│   ├── simple_memory_stress.sh
+│   ├── memory_performance_test.sh
 │   ├── swappiness_comparison.sh
 │   ├── optimize_memory.sh
 │   └── validate_optimization.sh
 └── outputs/
-    ├── vmstat_*.log
-    └── free_*.log
+    ├── trace_logs_or_vmstat_logs_here.txt
+    ├── memory_usage.log
+    ├── advanced_memory_*.log
+    └── advanced_memory_*.log.free
 ````
 
 ---
