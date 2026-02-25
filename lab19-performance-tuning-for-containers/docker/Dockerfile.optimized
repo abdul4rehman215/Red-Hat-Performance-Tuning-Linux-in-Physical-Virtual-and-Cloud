@@ -1,0 +1,21 @@
+FROM nginx:alpine
+
+# Remove unnecessary cache/files
+RUN rm -rf /var/cache/apk/* /tmp/*
+
+# Copy optimized configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Create non-root user
+RUN addgroup -g 1001 -S nginx-user && \
+    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx-user -g nginx-user nginx-user
+
+# Set permissions
+RUN chown -R nginx-user:nginx-user /var/cache/nginx && \
+    chown -R nginx-user:nginx-user /var/log/nginx && \
+    chown -R nginx-user:nginx-user /etc/nginx/conf.d
+
+USER nginx-user
+
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]
