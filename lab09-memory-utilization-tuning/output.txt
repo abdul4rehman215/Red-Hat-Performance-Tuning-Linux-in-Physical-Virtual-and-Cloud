@@ -1,0 +1,372 @@
+📄 output.txt — Lab 09: Memory Utilization Tuning (Sequential Outputs)
+
+====================================================================
+Task 1.1 — Examine Current Memory Configuration
+====================================================================
+
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        510M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+$ cat /proc/meminfo | head -20
+MemTotal:        4042516 kB
+MemFree:          521040 kB
+MemAvailable:    2754632 kB
+Buffers:           88164 kB
+Cached:          1965432 kB
+SwapCached:            0 kB
+Active:          1041128 kB
+Inactive:        2105440 kB
+Active(anon):     512344 kB
+Inactive(anon):   345120 kB
+Active(file):     528784 kB
+Inactive(file):  1760320 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:               188 kB
+Writeback:             0 kB
+AnonPages:        498112 kB
+Mapped:           161284 kB
+
+$ cat /proc/sys/vm/swappiness
+60
+
+$ cat /proc/swaps
+Filename                                Type            Size    Used    Priority
+
+
+====================================================================
+Task 1.1 — Baseline Report (memory_baseline.txt contents)
+====================================================================
+
+$ cat memory_baseline.txt
+=== Memory Baseline Report ===
+Date: Mon Aug 18 12:07:15 UTC 2026
+
+Memory Information:
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        510M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+Current swappiness: 60
+
+Swap Information:
+
+
+====================================================================
+Task 1.2 — View VM Parameters
+====================================================================
+
+$ sysctl -a | grep vm | head -10
+vm.admin_reserve_kbytes = 8192
+vm.block_dump = 0
+vm.compact_memory = 0
+vm.compaction_proactiveness = 20
+vm.dirty_background_bytes = 0
+vm.dirty_background_ratio = 10
+vm.dirty_bytes = 0
+vm.dirty_expire_centisecs = 3000
+vm.dirty_ratio = 20
+vm.dirty_writeback_centisecs = 500
+
+$ sysctl vm.swappiness
+vm.swappiness = 60
+
+$ sysctl vm.vfs_cache_pressure
+vm.vfs_cache_pressure = 100
+
+$ sysctl vm.dirty_ratio
+vm.dirty_ratio = 20
+
+
+====================================================================
+Task 1.3 — Modify vm.swappiness
+====================================================================
+
+$ sudo sysctl vm.swappiness=10
+vm.swappiness = 10
+
+$ cat /proc/sys/vm/swappiness
+10
+
+$ echo 10 | sudo tee /proc/sys/vm/swappiness
+10
+
+$ echo "vm.swappiness=10" | sudo tee -a /etc/sysctl.conf
+vm.swappiness=10
+
+$ sudo sysctl -p
+vm.swappiness = 10
+
+$ grep swappiness /etc/sysctl.conf
+vm.swappiness=10
+
+
+====================================================================
+Task 1.3 — Run memory_tune.sh (script output)
+====================================================================
+
+$ ./memory_tune.sh
+Current Memory Configuration:
+Swappiness: 10
+VFS Cache Pressure: 100
+vm.swappiness = 10
+vm.vfs_cache_pressure = 50
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+New Configuration Applied:
+Swappiness: 10
+VFS Cache Pressure: 50
+Dirty Ratio: 15
+Dirty Background Ratio: 5
+
+
+====================================================================
+Task 2.1 — free Command Examples
+====================================================================
+
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        505M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+$ free -m
+              total        used        free      shared  buff/cache   available
+Mem:           3947        1148         505          12        2293        2701
+Swap:             0           0           0
+
+$ free -b
+              total        used        free      shared  buff/cache   available
+Mem:      4042516480 1205213184 529530880   12582912 2307772416 2831157248
+Swap:              0          0          0
+
+$ free -h -s 2 -c 5
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        505M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        502M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        500M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        499M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        498M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+
+====================================================================
+Task 2.1 — explain_free.sh (script output)
+====================================================================
+
+$ ./explain_free.sh
+=== Memory Usage Explanation ===
+
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.1G        498M         12M        2.2G        2.6G
+Swap:            0B          0B          0B
+
+Columns Explanation:
+total = Total installed RAM
+used = RAM currently in use by processes
+free = Completely unused RAM
+shared = RAM used by tmpfs filesystems
+buff/cache = RAM used for buffers and cache
+available = RAM available for new processes
+
+Key Point: 'available' is more important than 'free'
+Linux uses free RAM for caching to improve performance
+
+
+====================================================================
+Task 2.2 — vmstat Examples
+====================================================================
+
+$ vmstat
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 509812  88164 1964012    0    0     1     6  215  390  2  1 97  0  0
+
+$ vmstat 2 10
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 509812  88164 1964012    0    0     1     6  215  390  2  1 97  0  0
+ 1  0      0 509120  88164 1965200    0    0     0     0  202  375  1  1 98  0  0
+ 1  0      0 508640  88164 1966108    0    0     0     4  198  370  1  1 98  0  0
+ 1  0      0 508220  88164 1967024    0    0     0     0  201  379  2  1 97  0  0
+ 1  0      0 507992  88164 1967912    0    0     0     0  200  376  2  1 97  0  0
+ 1  0      0 507540  88164 1968800    0    0     0     0  197  372  1  1 98  0  0
+ 1  0      0 507112  88164 1969720    0    0     0     0  205  381  2  1 97  0  0
+ 1  0      0 506820  88164 1970604    0    0     0     0  203  378  2  1 97  0  0
+ 1  0      0 506512  88164 1971492    0    0     0     0  201  377  2  1 97  0  0
+ 1  0      0 506188  88164 1972380    0    0     0     0  199  374  1  1 98  0  0
+
+$ vmstat -S M 2 5
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0    495     86   1873    0    0     0     0  210  388  2  1 97  0  0
+ 1  0      0    494     86   1874    0    0     0     0  199  372  1  1 98  0  0
+ 1  0      0    494     86   1875    0    0     0     0  201  376  2  1 97  0  0
+ 1  0      0    493     86   1876    0    0     0     0  200  375  2  1 97  0  0
+ 1  0      0    493     86   1876    0    0     0     0  202  378  2  1 97  0  0
+
+$ vmstat -s
+      4042516 K total memory
+      1205848 K used memory
+       512344 K active memory
+       345120 K inactive memory
+       521040 K free memory
+        88164 K buffer memory
+      1965432 K swap cache
+      2836668 K total swap
+            0 K used swap
+      2836668 K free swap
+        40210 non-nice user cpu ticks
+         9312 nice user cpu ticks
+         8420 system cpu ticks
+      1890010 idle cpu ticks
+         1400 IO-wait cpu ticks
+            0 IRQ cpu ticks
+          220 softirq cpu ticks
+            0 stolen cpu ticks
+      1203450 pages paged in
+       983210 pages paged out
+            0 pages swapped in
+            0 pages swapped out
+      1320000 interrupts
+      2400000 CPU context switches
+   1723988832 boot time
+       85000 forks
+
+
+====================================================================
+Task 2.2 — explain_vmstat.sh (script output)
+====================================================================
+
+$ ./explain_vmstat.sh
+=== vmstat Output Explanation ===
+
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 505112  88164 1968212    0    0     0     0  210  388  2  1 97  0  0
+
+Columns Explanation:
+
+Procs:
+ r = processes waiting for CPU
+ b = processes in uninterruptible sleep
+
+Memory:
+ swpd = virtual memory used (KB)
+ free = idle memory (KB)
+ buff = memory used as buffers (KB)
+ cache = memory used as cache (KB)
+
+Swap:
+ si = memory swapped in from disk (KB/s)
+ so = memory swapped out to disk (KB/s)
+
+IO:
+ bi = blocks received from block device (blocks/s)
+ bo = blocks sent to block device (blocks/s)
+
+System:
+ in = interrupts per second
+ cs = context switches per second
+
+CPU:
+ us = user time
+ sy = system time
+ id = idle time
+ wa = wait time
+
+
+====================================================================
+Task 3.1 — stress-ng Install Check (output shown)
+====================================================================
+
+$ sudo apt update && sudo apt install -y stress-ng
+Hit:1 http://archive.ubuntu.com/ubuntu focal InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu focal-updates InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu focal-security InRelease
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+stress-ng is already the newest version (0.11.23-1build1).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+
+====================================================================
+Troubleshooting — Permission + Persistence + Stress Behavior
+====================================================================
+
+$ sudo -l
+Matching Defaults entries for toor on ip-172-31-10-219:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+User toor may run the following commands on ip-172-31-10-219:
+    (ALL : ALL) ALL
+
+$ sudo sysctl vm.swappiness=10
+vm.swappiness = 10
+
+$ echo 10 | sudo tee /proc/sys/vm/swappiness
+10
+
+$ echo "vm.swappiness=10" | sudo tee -a /etc/sysctl.conf
+vm.swappiness=10
+
+$ grep swappiness /etc/sysctl.conf
+vm.swappiness=10
+vm.swappiness=10
+
+$ sudo sysctl -p
+vm.swappiness = 10
+
+
+====================================================================
+Troubleshooting — Unresponsive Tests (stress-ng + free/vmstat output)
+====================================================================
+
+$ stress-ng --vm 1 --vm-bytes 25% --timeout 30s
+stress-ng: info:  [5010] setting to a 30 second run per stressor
+stress-ng: info:  [5010] dispatching hogs: 1 vm
+stress-ng: info:  [5010] successful run completed in 30.01s
+
+$ free -h && vmstat 1 3
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.2G        460M         12M        2.2G        2.5G
+Swap:            0B          0B          0B
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 471220  88200 1958400    0    0     0     0  220  410  3  1 96  0  0
+ 1  0      0 469980  88200 1959900    0    0     0     0  210  398  2  1 97  0  0
+ 1  0      0 468740  88200 1961100    0    0     0     0  208  392  2  1 97  0  0
+
+
+====================================================================
+Troubleshooting — Swap Not Available (swapfile creation outputs)
+====================================================================
+
+$ mkswap /swapfile
+Setting up swapspace version 1, size = 1024 MiB (1073737728 bytes)
+no label, UUID=5c1c6f8b-0b0e-4d8c-9b4d-41e2f9012c21
+
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        1.2G        455M         12M        2.2G        2.5G
+Swap:          1.0G          0B        1.0G
+
+====================================================================
+END OF output.txt
+====================================================================
