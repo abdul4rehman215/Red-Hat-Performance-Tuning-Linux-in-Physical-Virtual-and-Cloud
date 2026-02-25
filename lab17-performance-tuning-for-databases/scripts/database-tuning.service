@@ -1,0 +1,15 @@
+# ============================================================
+# 5) /etc/systemd/system/database-tuning.service
+# ============================================================
+
+[Unit]
+Description=Database Performance Tuning
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/blockdev --setra 8192 /dev/sda
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
