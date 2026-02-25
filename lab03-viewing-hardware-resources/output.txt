@@ -1,0 +1,398 @@
+-bash-4.2$ lscpu
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        46 bits physical, 48 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               2
+On-line CPU(s) list:                  0,1
+Vendor ID:                            GenuineIntel
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+CPU family:                           6
+Model:                                85
+Thread(s) per core:                   2
+Core(s) per socket:                   1
+Socket(s):                            1
+Stepping:                             7
+CPU MHz:                              2494.140
+BogoMIPS:                             4988.28
+Virtualization:                       VT-x
+Hypervisor vendor:                    KVM
+Virtualization type:                  full
+L1d cache:                            32K
+L1i cache:                            32K
+L2 cache:                             1M
+L3 cache:                             35.8M
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0,1
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid tsc_known_freq pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single pti tpr_shadow vnmi ept vpid fsgsbase bmi1 hle avx2 smep bmi2 erms invpcid rtm rdseed adx smap xsaveopt arat md_clear arch_capabilities
+
+-bash-4.2$ lscpu | grep -E "(MHz|GHz)"
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+CPU MHz:                              2494.140
+BogoMIPS:                             4988.28
+
+-bash-4.2$ lscpu | grep -i cache
+L1d cache:                            32K
+L1i cache:                            32K
+L2 cache:                             1M
+L3 cache:                             35.8M
+
+-bash-4.2$ lscpu | grep Flags
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid tsc_known_freq pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single pti tpr_shadow vnmi ept vpid fsgsbase bmi1 hle avx2 smep bmi2 erms invpcid rtm rdseed adx smap xsaveopt arat md_clear arch_capabilities
+
+-bash-4.2$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       701Mi       2.3Gi        12Mi       757Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+-bash-4.2$ free -h --wide
+              total        used        free      shared     buffers       cache   available
+Mem:           3.7Gi       701Mi       2.3Gi        12Mi       37Mi       579Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+-bash-4.2$ free -h -s 5 -c 3
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       701Mi       2.3Gi        12Mi       757Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       703Mi       2.3Gi        12Mi       755Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       702Mi       2.3Gi        12Mi       756Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+-bash-4.2$ cat /proc/meminfo | head -20
+MemTotal:        3886948 kB
+MemFree:         2508452 kB
+MemAvailable:    2910020 kB
+Buffers:           38616 kB
+Cached:           592980 kB
+SwapCached:            0 kB
+Active:           636520 kB
+Inactive:         362040 kB
+Active(anon):      24740 kB
+Inactive(anon):   148600 kB
+Active(file):     611780 kB
+Inactive(file):   213440 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+SwapTotal:       2097148 kB
+SwapFree:        2097148 kB
+Dirty:                72 kB
+Writeback:            0 kB
+AnonPages:       155760 kB
+Mapped:           85612 kB
+
+-bash-4.2$ free | awk 'NR==2{printf "Memory Usage: %.2f%%\n", $3*100/$2}'
+Memory Usage: 18.04%
+
+-bash-4.2$ free -h | grep Swap
+Swap:          2.0Gi          0B       2.0Gi
+
+-bash-4.2$ swapon --show
+NAME      TYPE SIZE USED PRIO
+/dev/zram0 partition 2G   0B  100
+
+-bash-4.2$ lsblk
+NAME        MAJ:MIN RM SIZE RO TYPE MOUNTPOINTS
+nvme0n1     259:0    0  32G  0 disk
+└─nvme0n1p1 259:1    0  32G  0 part /
+nvme1n1     259:2    0  40G  0 disk
+
+-bash-4.2$ lsblk -f
+NAME        FSTYPE FSVER LABEL UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+nvme0n1
+└─nvme0n1p1 xfs                3a3f2f3a-9d92-4db1-a8f2-1c9d2f4c4f52   27.1G    17% /
+nvme1n1
+
+-bash-4.2$ lsblk -h
+NAME        MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+nvme0n1     259:0    0   32G  0 disk
+└─nvme0n1p1 259:1    0   32G  0 part /
+nvme1n1     259:2    0   40G  0 disk
+
+-bash-4.2$ lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE,UUID
+NAME        SIZE TYPE MOUNTPOINT FSTYPE UUID
+nvme0n1      32G disk
+└─nvme0n1p1   32G part /          xfs    3a3f2f3a-9d92-4db1-a8f2-1c9d2f4c4f52
+nvme1n1      40G disk
+
+-bash-4.2$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+devtmpfs        1.8G     0  1.8G   0% /dev
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+tmpfs           1.9G   17M  1.9G   1% /run
+/dev/nvme0n1p1   32G  5.4G   27G  17% /
+tmpfs           373M     0  373M   0% /run/user/1000
+
+-bash-4.2$ iostat -x 1 3
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-202)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.65    0.00    0.35    0.05    0.00   98.95
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.01      0.32     0.00   0.00    0.33    32.00    0.20      9.60     0.01   4.76    0.94    48.00   0.00   0.22
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.42    0.00    0.24    0.00    0.00   99.34
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.00      0.00     0.00   0.00    0.00     0.00    0.16      6.40     0.00   0.00    0.91    40.00   0.00   0.18
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.38    0.00    0.21    0.00    0.00   99.41
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz aqu-sz  %util
+nvme0n1          0.00      0.00     0.00   0.00    0.00     0.00    0.14      4.27     0.00   0.00    0.88    30.50   0.00   0.16
+
+-bash-4.2$ command -v lshw || echo "lshw not found"
+lshw not found
+
+-bash-4.2$ sudo dnf install -y lshw
+Last metadata expiration check: 0:11:58 ago on Tue 25 Feb 2026 12:10:01 PM UTC.
+Installing:
+ lshw  x86_64  B.02.19.2-12.el9  appstream  332 k
+
+Transaction Summary
+Install  1 Package
+
+Installed:
+  lshw-B.02.19.2-12.el9.x86_64
+
+Complete!
+
+-bash-4.2$ sudo lshw
+ip-172-31-10-202
+    description: Computer
+    width: 64 bits
+    capabilities: smp vsyscall32
+  *-core
+       description: Motherboard
+       physical id: 0
+     *-firmware
+          description: BIOS
+          vendor: Amazon EC2
+          version: 1.0
+          date: 12/01/2018
+          size: 96KiB
+          capacity: 16MiB
+          capabilities: pci edd cdboot
+     *-cpu
+          description: CPU
+          product: Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+          vendor: Intel Corp.
+          physical id: 3
+          bus info: cpu@0
+          size: 2494MHz
+          capacity: 2494MHz
+          width: 64 bits
+          clock: 100MHz
+          capabilities: fpu fpu_exception wp vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor
+     *-memory
+          description: System Memory
+          physical id: 5
+          size: 3840MiB
+     *-pci
+          description: PCI bus
+          physical id: 100
+          bus info: pci@0000:00:00.0
+     *-network
+          description: Ethernet interface
+          product: Elastic Network Adapter (ENA)
+          vendor: Amazon.com, Inc.
+          physical id: 1
+          bus info: pci@0000:00:05.0
+          logical name: eth0
+          version: 01
+          serial: 0a:2b:3c:4d:5e:6f
+          size: 1Gbit/s
+          capacity: 10Gbit/s
+          capabilities: ethernet physical tp mii autonegotiation
+          configuration: autonegotiation=on broadcast=yes driver=ena driverversion=2.10.0 duplex=full ip=172.31.10.202 link=yes multicast=yes port=twisted pair speed=1Gbit/s
+     *-storage
+          description: Non-Volatile memory controller
+          product: NVMe SSD Controller
+          vendor: Amazon.com, Inc.
+          physical id: 7
+          bus info: pci@0000:00:1f.0
+...
+
+-bash-4.2$ sudo lshw -short
+H/W path        Device     Class          Description
+=====================================================
+                          system         Computer
+/0                        bus            Motherboard
+/0/3                      processor      Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+/0/5                      memory         3840MiB System Memory
+/0/100                    bridge         440FX - 82441FX PMC [Natoma]
+/0/100/1                  bridge         82371SB PIIX3 ISA [Natoma/Triton II]
+/0/100/1.1                storage        82371SB PIIX3 IDE [Natoma/Triton II]
+/0/100/5       eth0       network        Elastic Network Adapter (ENA)
+/0/100/7                  storage        NVMe SSD Controller
+
+-bash-4.2$ sudo lshw -class processor
+  *-cpu
+       description: CPU
+       product: Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+       vendor: Intel Corp.
+       physical id: 3
+       bus info: cpu@0
+       size: 2494MHz
+       capacity: 2494MHz
+       width: 64 bits
+       capabilities: fpu fpu_exception wp vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor
+
+-bash-4.2$ sudo lshw -class memory
+  *-memory
+       description: System Memory
+       physical id: 5
+       size: 3840MiB
+
+-bash-4.2$ sudo lshw -class disk
+  *-disk
+       description: NVMe disk
+       product: Amazon Elastic Block Store
+       physical id: 0.0.0
+       bus info: scsi@0:0.0.0
+       logical name: /dev/nvme0n1
+       size: 32GiB (34GB)
+       capabilities: partitioned partitioned:dos
+       configuration: logicalsectorsize=512 sectorsize=512
+
+-bash-4.2$ sudo lshw -class network
+  *-network
+       description: Ethernet interface
+       product: Elastic Network Adapter (ENA)
+       vendor: Amazon.com, Inc.
+       physical id: 1
+       bus info: pci@0000:00:05.0
+       logical name: eth0
+       serial: 0a:2b:3c:4d:5e:6f
+       capacity: 10Gbit/s
+       configuration: autonegotiation=on broadcast=yes driver=ena duplex=full ip=172.31.10.202 link=yes multicast=yes speed=1Gbit/s
+
+-bash-4.2$ ip link show
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9001 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+    link/ether 0a:2b:3c:4d:5e:6f brd ff:ff:ff:ff:ff:ff
+
+-bash-4.2$ ip addr show
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9001 qdisc fq_codel state UP group default qlen 1000
+    link/ether 0a:2b:3c:4d:5e:6f brd ff:ff:ff:ff:ff:ff
+    inet 172.31.10.202/20 brd 172.31.15.255 scope global dynamic noprefixroute eth0
+       valid_lft 3185sec preferred_lft 3185sec
+
+-bash-4.2$ ping -c 4 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=111 time=0.86 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=111 time=0.79 ms
+64 bytes from 8.8.8.8: icmp_seq=3 ttl=111 time=0.81 ms
+64 bytes from 8.8.8.8: icmp_seq=4 ttl=111 time=0.84 ms
+
+--- 8.8.8.8 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3004ms
+rtt min/avg/max/mdev = 0.79/0.82/0.86/0.03 ms
+
+-bash-4.2$ top
+top - 12:17:42 up  0:38,  1 user,  load average: 0.05, 0.06, 0.05
+Tasks: 112 total,   1 running, 111 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.9 us,  0.4 sy,  0.0 ni, 98.6 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+MiB Mem :   3795.8 total,   2447.9 free,    704.2 used,    643.7 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   2838.6 avail Mem
+
+-bash-4.2$ htop
+-bash: htop: command not found
+
+-bash-4.2$ sudo dnf install -y htop
+Last metadata expiration check: 0:19:12 ago on Tue 25 Feb 2026 12:10:01 PM UTC.
+Installing:
+ htop  x86_64  3.2.2-1.el9  appstream  159 k
+
+Transaction Summary
+Install  1 Package
+
+Installed:
+  htop-3.2.2-1.el9.x86_64
+
+Complete!
+
+-bash-4.2$ htop
+htop 3.2.2 - (press F1 for help)
+
+-bash-4.2$ uptime
+ 12:19:15 up  0:40,  1 user,  load average: 0.04, 0.06, 0.05
+
+-bash-4.2$ ./system_report.sh
+=== SYSTEM RESOURCE ANALYSIS REPORT ===
+Generated on: Tue Feb 25 12:20:01 UTC 2026
+
+=== CPU INFORMATION ===
+CPU(s):                               2
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Thread(s) per core:                   2
+Core(s) per socket:                   1
+Socket(s):                            1
+CPU MHz:                              2494.140
+
+=== MEMORY UTILIZATION ===
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       706Mi       2.3Gi        12Mi       754Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+=== STORAGE DEVICES ===
+NAME        SIZE TYPE MOUNTPOINT FSTYPE
+nvme0n1      32G disk
+└─nvme0n1p1   32G part /          xfs
+nvme1n1      40G disk
+
+=== DISK USAGE ===
+Filesystem      Size  Used Avail Use% Mounted on
+devtmpfs        1.8G     0  1.8G   0% /dev
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+tmpfs           1.9G   17M  1.9G   1% /run
+/dev/nvme0n1p1   32G  5.4G   27G  17% /
+tmpfs           373M     0  373M   0% /run/user/1000
+
+=== SYSTEM LOAD ===
+ 12:20:01 up  0:41,  1 user,  load average: 0.03, 0.06, 0.05
+
+=== NETWORK INTERFACES ===
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9001 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+
+-bash-4.2$ ./monitor_resources.sh
+Monitoring system resources for 60 seconds...
+Resource monitoring complete. Check resource_log.csv for results.
+
+-bash-4.2$ cat resource_log.csv
+Timestamp,CPU_Usage,Memory_Usage,Disk_Usage
+2026-02-25 12:21:12,0.9,18.4,17
+2026-02-25 12:21:17,0.7,18.4,17
+2026-02-25 12:21:22,0.8,18.4,17
+2026-02-25 12:21:27,0.6,18.4,17
+2026-02-25 12:21:32,0.7,18.4,17
+2026-02-25 12:21:37,0.8,18.4,17
+2026-02-25 12:21:42,0.6,18.4,17
+2026-02-25 12:21:47,0.7,18.4,17
+2026-02-25 12:21:52,0.8,18.5,17
+2026-02-25 12:21:57,0.6,18.5,17
+2026-02-25 12:22:02,0.7,18.5,17
+2026-02-25 12:22:07,0.8,18.5,17
+
+-bash-4.2$ cat baseline_report.txt
+=== HARDWARE RESOURCE BASELINE ===
+System: ip-172-31-10-202
+Date: Tue Feb 25 12:23:01 UTC 2026
+
+CPU: Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Total Memory: 3.7Gi
+Storage: 2 devices
+Network: 2 interfaces
