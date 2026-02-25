@@ -1,0 +1,286 @@
+-bash-4.2$ uname -a
+Linux ip-172-31-10-214 5.14.0-427.16.1.el9_4.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Jan 12 10:38:21 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+
+-bash-4.2$ lscpu
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        46 bits physical, 48 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               2
+On-line CPU(s) list:                  0,1
+Vendor ID:                            GenuineIntel
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+CPU family:                           6
+Model:                                85
+Thread(s) per core:                   2
+Core(s) per socket:                   1
+Socket(s):                            1
+Stepping:                             7
+CPU MHz:                              2494.140
+BogoMIPS:                             4988.28
+Virtualization:                       VT-x
+L1d cache:                            32K
+L1i cache:                            32K
+L2 cache:                             1M
+L3 cache:                             35.8M
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0,1
+
+-bash-4.2$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       668Mi       2.3Gi        12Mi       758Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+-bash-4.2$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+devtmpfs        1.8G     0  1.8G   0% /dev
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+tmpfs           1.9G   17M  1.9G   1% /run
+/dev/nvme0n1p1   32G  5.2G   27G  17% /
+tmpfs           373M     0  373M   0% /run/user/1000
+
+-bash-4.2$ uptime
+ 11:22:06 up  0:34,  1 user,  load average: 0.04, 0.06, 0.05
+
+-bash-4.2$ pwd
+/home/centos/performance_lab
+
+-bash-4.2$ cat baseline_report.txt
+=== System Baseline Report ===
+Date: Tue Feb 25 11:22:28 UTC 2026
+
+CPU Information:
+CPU(s):                               2
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Thread(s) per core:                   2
+Core(s) per socket:                   1
+
+Memory Information:
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       671Mi       2.3Gi        12Mi       758Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+Disk Usage:
+Filesystem      Size  Used Avail Use% Mounted on
+devtmpfs        1.8G     0  1.8G   0% /dev
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+tmpfs           1.9G   17M  1.9G   1% /run
+/dev/nvme0n1p1   32G  5.2G   27G  17% /
+tmpfs           373M     0  373M   0% /run/user/1000
+
+Current Load:
+ 11:22:29 up  0:34,  1 user,  load average: 0.04, 0.06, 0.05
+
+-bash-4.2$ sudo yum install -y stress-ng htop iotop nethogs 2>/dev/null || sudo apt-get install -y stress-ng htop iotop nethogs 2>/dev/null
+Installed:
+  htop-3.2.2-1.el9.x86_64            iotop-0.6-28.el9.noarch
+  nethogs-0.8.7-3.el9.x86_64         stress-ng-0.16.05-1.el9.x86_64
+
+Complete!
+
+-bash-4.2$ ./performance_demo.sh
+=== Performance Tuning Goals Demonstration ===
+1. Throughput: Measuring work completed per second
+2. Response Time: Measuring request-response latency
+3. Resource Utilization: Monitoring system resources
+4. Scalability: Testing under increasing load
+
+Measuring CPU throughput...
+Completed 10,000 calculations in 2 seconds
+Throughput: 5000 calculations per second
+
+Measuring file system response time...
+File creation 1 response time: .041893274s
+File creation 2 response time: .038214509s
+File creation 3 response time: .040108772s
+File creation 4 response time: .037996381s
+File creation 5 response time: .039442115s
+
+Use 'htop' in another terminal to observe resource utilization
+Press Enter to continue...
+(Pressed Enter to continue and returned to shell.)
+
+-bash-4.2$ sudo yum install -y sysstat iftop 2>/dev/null || sudo apt-get install -y sysstat iftop 2>/dev/null
+Installed:
+  iftop-1.0-0.35.pre4.el9.x86_64     sysstat-12.5.4-7.el9.x86_64
+
+Complete!
+
+-bash-4.2$ sudo systemctl enable sysstat 2>/dev/null || echo "sysstat service configuration may vary by distribution"
+Created symlink /etc/systemd/system/multi-user.target.wants/sysstat.service → /usr/lib/systemd/system/sysstat.service.
+
+-bash-4.2$ ./system_monitor.sh
+=== System Performance Monitoring ===
+Monitoring started at: Tue Feb 25 11:24:05 UTC 2026
+Duration: 60 seconds
+
+Starting system monitoring...
+Sample 1/6 collected...
+Sample 2/6 collected...
+Sample 3/6 collected...
+Sample 4/6 collected...
+Sample 5/6 collected...
+Sample 6/6 collected...
+Monitoring complete. Results saved to system_performance.log
+Use 'cat system_performance.log' to view detailed results
+
+-bash-4.2$ head -40 system_performance.log
+=== System Performance Monitoring ===
+Monitoring started at: Tue Feb 25 11:24:05 UTC 2026
+Duration: 60 seconds
+
+=== Timestamp: Tue Feb 25 11:24:05 UTC 2026 ===
+CPU Usage:
+%Cpu(s):  1.7 us,  0.6 sy,  0.0 ni, 97.4 id,  0.1 wa,  0.0 hi,  0.2 si,  0.0 st
+Memory Usage:
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       683Mi       2.3Gi        12Mi       755Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+Disk I/O:
+Linux 5.14.0-427.16.1.el9_4.x86_64 (ip-172-31-10-214)  02/25/2026  _x86_64_  (2 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           1.31    0.00    0.62    0.11    0.00   97.96
+
+Device            r/s     rkB/s   rrqm/s  %rrqm  r_await  w/s     wkB/s  w_await aqu-sz  %util
+nvme0n1          0.02      0.60     0.00   0.00    0.45  0.23     28.10   1.12   0.00   0.30
+Network Interfaces:
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo:  224596     1090    0    0    0     0          0         0   224596     1090    0    0    0     0       0          0
+Load Average:
+ 11:24:06 up  0:36,  1 user,  load average: 0.03, 0.05, 0.05
+----------------------------------------
+
+-bash-4.2$ ./analyze_bottlenecks.sh
+=== Bottleneck Analysis Tool ===
+
+1. CPU Analysis:
+ Current CPU usage: 1.7%
+ CPU usage is normal
+
+2. Memory Analysis:
+ Memory usage: 18.53%
+ Memory usage is normal
+
+3. Load Average Analysis:
+ Load average: 0.03 (2 cores available)
+ Load per core: 0.01
+ Load average is acceptable
+
+4. Disk Usage Analysis:
+ Root filesystem usage: 17%
+ Disk usage is normal
+
+=== Bottleneck Analysis Complete ===
+
+-bash-4.2$ ./responsiveness_test.sh
+=== System Responsiveness Testing ===
+
+Testing filesystem responsiveness...
+ Iteration 1: .003119842s
+ Iteration 2: .002871509s
+ Iteration 3: .002932118s
+ Iteration 4: .002756004s
+ Iteration 5: .002914776s
+ Iteration 6: .002802331s
+ Iteration 7: .002783990s
+ Iteration 8: .002964447s
+ Iteration 9: .002745218s
+ Iteration 10: .002811662s
+ Average filesystem response time: .002870s
+
+Testing process creation responsiveness...
+ Iteration 1: .000421118s
+ Iteration 2: .000389774s
+ Iteration 3: .000400028s
+ Iteration 4: .000392995s
+ Iteration 5: .000394662s
+ Average process creation time: .000399s
+
+Testing network responsiveness (localhost)...
+ rtt min/avg/max/mdev = 0.018/0.022/0.027/0.003 ms
+
+=== Responsiveness Testing Complete ===
+
+-bash-4.2$ ./scalability_test.sh
+=== System Scalability Testing ===
+
+Testing CPU scalability...
+ Testing with 1 concurrent processes...
+ Load level 1 completed in 1s
+ Testing with 2 concurrent processes...
+ Load level 2 completed in 1s
+ Testing with 4 concurrent processes...
+ Load level 4 completed in 2s
+
+Testing memory allocation scalability...
+ Testing 10MB allocation...
+ 10MB allocation took .011820417s
+ Testing 50MB allocation...
+ 50MB allocation took .046339881s
+ Testing 100MB allocation...
+ 100MB allocation took .090774206s
+
+Testing I/O scalability...
+ Testing with 1 concurrent file operations...
+ 1 concurrent operations completed in 0s
+ Testing with 5 concurrent file operations...
+ 5 concurrent operations completed in 1s
+ Testing with 10 concurrent file operations...
+ 10 concurrent operations completed in 1s
+
+=== Scalability Testing Complete ===
+
+-bash-4.2$ ./generate_performance_report.sh
+Report generated successfully: performance_tuning_report.txt
+View the complete report with: cat performance_tuning_report.txt
+
+-bash-4.2$ head -40 performance_tuning_report.txt
+=== Performance Tuning Lab Report ===
+Generated on: Tue Feb 25 11:28:19 UTC 2026
+System: Linux ip-172-31-10-214 5.14.0-427.16.1.el9_4.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Jan 12 10:38:21 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+
+1. SYSTEM BASELINE
+==================
+=== System Baseline Report ===
+Date: Tue Feb 25 11:22:28 UTC 2026
+
+CPU Information:
+CPU(s):                               2
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+Thread(s) per core:                   2
+Core(s) per socket:                   1
+
+Memory Information:
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       671Mi       2.3Gi        12Mi       758Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+-bash-4.2$ ls -la *.sh
+-rwxr-xr-x. 1 centos centos 1146 Feb 25 11:26 analyze_bottlenecks.sh
+-rwxr-xr-x. 1 centos centos  520 Feb 25 11:25 cpu_bottleneck.sh
+-rwxr-xr-x. 1 centos centos 2232 Feb 25 11:28 generate_performance_report.sh
+-rwxr-xr-x. 1 centos centos  532 Feb 25 11:25 disk_bottleneck.sh
+-rwxr-xr-x. 1 centos centos  403 Feb 25 11:25 memory_bottleneck.sh
+-rwxr-xr-x. 1 centos centos 1189 Feb 25 11:23 performance_demo.sh
+-rwxr-xr-x. 1 centos centos 1442 Feb 25 11:27 responsiveness_test.sh
+-rwxr-xr-x. 1 centos centos 1679 Feb 25 11:27 scalability_test.sh
+-rwxr-xr-x. 1 centos centos 1659 Feb 25 11:24 system_monitor.sh
+
+-bash-4.2$ ls -la *.log *.txt
+-rw-r--r--. 1 centos centos  609 Feb 25 11:22 baseline_report.txt
+-rw-r--r--. 1 centos centos 2854 Feb 25 11:28 performance_tuning_report.txt
+-rw-r--r--. 1 centos centos 7921 Feb 25 11:25 system_performance.log
+
+-bash-4.2$ uptime && free -h && df -h
+ 11:28:54 up  0:41,  1 user,  load average: 0.05, 0.06, 0.05
+              total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       689Mi       2.3Gi        12Mi       757Mi       2.8Gi
+Swap:          2.0Gi          0B       2.0Gi
+Filesystem      Size  Used Avail Use% Mounted on
+devtmpfs        1.8G     0  1.8G   0% /dev
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+tmpfs           1.9G   17M  1.9G   1% /run
+/dev/nvme0n1p1   32G  5.3G   27G  17% /
+tmpfs           373M     0  373M   0% /run/user/1000
