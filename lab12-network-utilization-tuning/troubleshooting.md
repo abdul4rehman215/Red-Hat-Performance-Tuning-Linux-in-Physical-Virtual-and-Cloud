@@ -1,4 +1,4 @@
-# 🛠 Troubleshooting — Lab 12: Network Utilization Tuning
+# 🛠 Troubleshooting Guide — Lab 12: Network Utilization Tuning
 
 > This guide lists common issues encountered when tuning Linux networking with **sysctl**, **ethtool**, and **iperf3**, along with fixes and prevention tips.
 
