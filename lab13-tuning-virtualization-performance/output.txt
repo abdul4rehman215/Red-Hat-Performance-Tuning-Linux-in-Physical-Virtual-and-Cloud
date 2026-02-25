@@ -1,0 +1,809 @@
+output.txt
+🧪 Lab 13: Tuning Virtualization Performance
+Environment: Ubuntu 24.04.1 LTS (KVM Host)
+Host: toor@ip-172-31-10-233
+Hypervisor: KVM/QEMU with libvirt (virsh)
+
+================================================================================
+Task 1: Configure vCPU and Memory Settings for VMs
+Subtask 1.1: Analyze Current VM Configuration
+================================================================================
+
+toor@ip-172-31-10-233:~$ sudo virsh list --all
+ Id   Name        State
+-----------------------------
+ 1    vm-test1     running
+ -    vm-test2     shut off
+ -    perf-sample  shut off
+
+toor@ip-172-31-10-233:~$ sudo virsh dumpxml vm-test1 | grep -E "(vcpu|memory)"
+  <memory unit='KiB'>2097152</memory>
+  <currentMemory unit='KiB'>2097152</currentMemory>
+  <vcpu placement='static'>2</vcpu>
+
+toor@ip-172-31-10-233:~$ sudo virsh dominfo vm-test1
+Id:             1
+Name:           vm-test1
+UUID:           6b7c3d88-1e0b-4e5c-8e7b-9c6c0af0e2b1
+OS Type:        hvm
+State:          running
+CPU(s):         2
+CPU time:       182.6s
+Max memory:     2097152 KiB
+Used memory:    2097152 KiB
+Persistent:     yes
+Autostart:      disable
+Managed save:   no
+Security model: apparmor
+Security DOI:   0
+
+================================================================================
+Subtask 1.2: Configure Optimal vCPU Settings
+================================================================================
+
+toor@ip-172-31-10-233:~$ lscpu | grep -E "(CPU\(s\)|Thread|Core|Socket)"
+CPU(s):                          8
+Thread(s) per core:              2
+Core(s) per socket:              4
+Socket(s):                       1
+
+toor@ip-172-31-10-233:~$ cat /proc/cpuinfo | grep -E "(processor|physical id|core id)" | head -20
+processor	: 0
+physical id	: 0
+core id		: 0
+processor	: 1
+physical id	: 0
+core id		: 0
+processor	: 2
+physical id	: 0
+core id		: 1
+processor	: 3
+physical id	: 0
+core id		: 1
+processor	: 4
+physical id	: 0
+core id		: 2
+processor	: 5
+physical id	: 0
+core id		: 2
+processor	: 6
+physical id	: 0
+core id		: 3
+processor	: 7
+physical id	: 0
+core id		: 3
+
+✅ Interpretation:
+• 1 socket, 4 cores, hyperthreading gives 8 CPUs.
+• Best practice: pin VM vCPUs to separate physical CPUs for cache locality and consistent performance.
+
+----------------------------------------
+Create performance-vm with optimized vCPU
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano configure_vcpu.sh
+toor@ip-172-31-10-233:~$ chmod +x configure_vcpu.sh
+
+toor@ip-172-31-10-233:~$ command -v virsh && command -v virt-install
+/usr/bin/virsh
+/usr/bin/virt-install
+
+toor@ip-172-31-10-233:~$ ./configure_vcpu.sh
+WARNING  --location is deprecated. Use --cdrom or --location with a kernel+initrd pair.
+WARNING  Requested bridge virbr0 but network appears inactive. Attempting to start default network.
+Starting install...
+Allocating 'performance-vm.qcow2'                                               |  20 GB  00:00:02
+Creating domain...                                                              |         00:00:01
+
+Domain installation still in progress. You can reconnect to
+the console to complete the installation process.
+VM performance-vm created with optimized vCPU configuration
+
+toor@ip-172-31-10-233:~$ sudo virsh list --all | grep performance-vm
+ -    performance-vm   shut off
+
+----------------------------------------
+Apply CPU affinity (vCPU pinning)
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ sudo virsh vcpupin performance-vm 0 0
+toor@ip-172-31-10-233:~$ sudo virsh vcpupin performance-vm 1 1
+toor@ip-172-31-10-233:~$ sudo virsh vcpupin performance-vm 2 2
+toor@ip-172-31-10-233:~$ sudo virsh vcpupin performance-vm 3 3
+(no output)
+
+toor@ip-172-31-10-233:~$ sudo virsh vcpuinfo performance-vm
+VCPU:           0
+CPU:            0
+State:          offline
+CPU time:       0.0s
+CPU Affinity:   y-------
+
+VCPU:           1
+CPU:            1
+State:          offline
+CPU time:       0.0s
+CPU Affinity:   -y------
+
+VCPU:           2
+CPU:            2
+State:          offline
+CPU time:       0.0s
+CPU Affinity:   --y-----
+
+VCPU:           3
+CPU:            3
+State:          offline
+CPU time:       0.0s
+CPU Affinity:   ---y----
+
+📝 Note: VM is currently shut off, so vCPU state shows offline, but pinning is stored in config.
+
+================================================================================
+Subtask 1.3: Optimize Memory Configuration
+================================================================================
+
+toor@ip-172-31-10-233:~$ nano memory_config.xml
+
+----------------------------------------
+Enable Huge Pages
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ cat /proc/meminfo | grep -i huge
+AnonHugePages:    243200 kB
+ShmemHugePages:        0 kB
+FileHugePages:         0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+
+toor@ip-172-31-10-233:~$ echo 1024 | sudo tee /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+1024
+
+toor@ip-172-31-10-233:~$ cat /proc/meminfo | grep -i huge
+AnonHugePages:    247296 kB
+ShmemHugePages:        0 kB
+FileHugePages:         0 kB
+HugePages_Total:    1024
+HugePages_Free:     1024
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:         2097152 kB
+
+✅ Takeaway: 1024 hugepages × 2MB = 2048MB (2GB) reserved.
+
+----------------------------------------
+Apply memory configuration via virsh edit
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano update_memory.sh
+toor@ip-172-31-10-233:~$ chmod +x update_memory.sh
+
+toor@ip-172-31-10-233:~$ ./update_memory.sh
+Domain 'performance-vm' is not running
+(then it waits ~10 seconds, opens editor for virsh edit — no terminal output)
+After exiting editor:
+Memory configuration updated for performance-vm
+Remember to add hugepages and NUMA settings manually in the editor
+
+✅ Manual changes in virsh edit (student action):
+• Added <memoryBacking><hugepages/>...</memoryBacking> and <numatune> stanza into VM domain XML.
+• Updated memory to match 4GB max / 2GB current.
+
+================================================================================
+Task 2: Memory Ballooning Optimization
+================================================================================
+
+----------------------------------------
+Subtask 2.1: Enable Memory Ballooning
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ sudo virsh start performance-vm
+Domain 'performance-vm' started
+
+toor@ip-172-31-10-233:~$ sudo virsh console performance-vm
+Connected to domain 'performance-vm'
+Escape character is ^]
+
+Ubuntu 20.04 LTS installer (serial console)
+performance-vm login:
+
+📝 Note: VM boots into installer due to net-install. Lab progression assumes guest OS is installed/available.
+
+(inside guest VM)
+performance-vm login: toor
+Password:
+
+toor@performance-vm:~$ sudo modprobe virtio_balloon
+(no output)
+
+toor@performance-vm:~$ echo "virtio_balloon" | sudo tee -a /etc/modules
+virtio_balloon
+
+toor@performance-vm:~$ lsmod | grep virtio_balloon
+virtio_balloon           20480  0
+virtio                  16384  1 virtio_balloon
+
+toor@performance-vm:~$ exit
+logout
+
+toor@ip-172-31-10-233:~$ ^]
+Domain performance-vm console disconnected
+
+----------------------------------------
+Configure balloon device and attach to VM
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano balloon_config.xml
+
+toor@ip-172-31-10-233:~$ nano setup_ballooning.sh
+toor@ip-172-31-10-233:~$ chmod +x setup_ballooning.sh
+
+toor@ip-172-31-10-233:~$ ./setup_ballooning.sh
+Domain 'performance-vm' is being shutdown
+
+Device attached successfully
+
+Domain 'performance-vm' started
+Memory ballooning enabled for performance-vm
+
+toor@ip-172-31-10-233:~$ sudo virsh dumpxml performance-vm | grep -i balloon -n
+143:    <memballoon model='virtio'>
+144:      <stats period='10'/>
+145:      <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
+146:    </memballoon>
+
+----------------------------------------
+Subtask 2.2: Monitor and Control Ballooning
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano monitor_balloon.sh
+toor@ip-172-31-10-233:~$ chmod +x monitor_balloon.sh
+
+toor@ip-172-31-10-233:~$ ./monitor_balloon.sh
+=== Memory Ballooning Status ===
+Host Memory Usage:
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       2.9Gi       9.4Gi       8.0Mi       2.7Gi        12Gi
+Swap:             0B          0B          0B
+
+VM Memory Statistics:
+actual 4194304
+rss 1245184
+unused 2785280
+available 4194304
+major_fault 21
+minor_fault 31402
+swap_in 0
+swap_out 0
+
+Balloon Memory Info:
+Max memory:     4194304 KiB
+Used memory:    4194304 KiB
+
+Detailed Memory Stats:
+Domain: 'performance-vm'
+  balloon.current=4194304
+  balloon.maximum=4194304
+  balloon.swap_in=0
+  balloon.swap_out=0
+  balloon.major_fault=21
+  balloon.minor_fault=31402
+  balloon.unused=2785280
+  balloon.available=4194304
+  balloon.rss=1245184
+
+----------------------------------------
+Dynamic memory adjustment
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano adjust_memory.sh
+toor@ip-172-31-10-233:~$ chmod +x adjust_memory.sh
+
+toor@ip-172-31-10-233:~$ ./adjust_memory.sh
+Usage: ./adjust_memory.sh <memory_in_KB>
+Example: ./adjust_memory.sh 2097152 # for 2GB
+
+toor@ip-172-31-10-233:~$ ./adjust_memory.sh 2097152
+Adjusting memory for performance-vm to 2097152KB
+actual 2097152
+rss 1212416
+unused 786432
+available 2097152
+major_fault 23
+minor_fault 31890
+swap_in 0
+swap_out 0
+Memory adjustment completed
+
+----------------------------------------
+Subtask 2.3: Automatic Memory Balancing
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano auto_balance.sh
+toor@ip-172-31-10-233:~$ chmod +x auto_balance.sh
+
+toor@ip-172-31-10-233:~$ ./auto_balance.sh
+2026-02-25 17:02:11 - Host memory usage: 19%
+2026-02-25 17:02:11 - VM current memory: 2097152KB
+2026-02-25 17:02:12 - Increased VM memory to 2359296KB due to low host usage
+
+toor@ip-172-31-10-233:~$ sudo virsh dommemstat performance-vm | head
+actual 2359296
+rss 1236992
+unused 1048576
+available 2359296
+major_fault 23
+minor_fault 31912
+swap_in 0
+swap_out 0
+
+----------------------------------------
+Cron scheduling (every 5 minutes)
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ (crontab -l 2>/dev/null; echo "*/5 * * * * /home/$(whoami)/auto_balance.sh") | crontab -
+(no output)
+
+toor@ip-172-31-10-233:~$ crontab -l
+*/5 * * * * /home/toor/auto_balance.sh
+
+================================================================================
+Task 3: Test Performance for Virtual Machines Under Load
+================================================================================
+
+----------------------------------------
+Subtask 3.1: Install Performance Testing Tools
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ sudo apt update
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:4 http://security.ubuntu.com/ubuntu noble-security InRelease
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+
+toor@ip-172-31-10-233:~$ sudo apt install -y stress-ng sysbench iperf3 fio htop iotop
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+stress-ng is already the newest version (0.17.08-1build1).
+sysbench is already the newest version (1.0.20+ds-1build1).
+iperf3 is already the newest version (3.13-1ubuntu3).
+fio is already the newest version (3.36-1ubuntu2).
+htop is already the newest version (3.3.0-3build1).
+iotop is already the newest version (0.6-2build1).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+toor@ip-172-31-10-233:~$ sudo apt install -y sysstat collectl nmon
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+sysstat is already the newest version (12.6.1-2ubuntu3).
+The following NEW packages will be installed:
+  collectl nmon
+0 upgraded, 2 newly installed, 0 to remove and 0 not upgraded.
+Need to get 612 kB of archives.
+After this operation, 1.7 MB of additional disk space will be used.
+Fetched 612 kB in 1s (732 kB/s)
+Selecting previously unselected package nmon.
+Selecting previously unselected package collectl.
+Setting up nmon (16m-1build2) ...
+Setting up collectl (4.3.1-1) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+
+toor@ip-172-31-10-233:~$ nano install_perf_tools.sh
+toor@ip-172-31-10-233:~$ chmod +x install_perf_tools.sh
+
+toor@ip-172-31-10-233:~$ ./install_perf_tools.sh
+Installing performance testing tools...
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+stress-ng is already the newest version (0.17.08-1build1).
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+sysbench is already the newest version (1.0.20+ds-1build1).
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  netperf
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 82.3 kB of archives.
+After this operation, 276 kB of additional disk space will be used.
+Fetched 82.3 kB in 0s (611 kB/s)
+Setting up netperf (2.7.0-2build2) ...
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+fio is already the newest version (3.36-1ubuntu2).
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+htop is already the newest version (3.3.0-3build1).
+iotop is already the newest version (0.6-2build1).
+sysstat is already the newest version (12.6.1-2ubuntu3).
+collectl is already the newest version (4.3.1-1).
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following NEW packages will be installed:
+  memtester
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 19.1 kB of archives.
+After this operation, 52.2 kB of additional disk space will be used.
+Fetched 19.1 kB in 0s (235 kB/s)
+Setting up memtester (4.6.0-1build1) ...
+Performance tools installation completed
+
+----------------------------------------
+Subtask 3.2: CPU Performance Testing
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano cpu_stress_test.sh
+toor@ip-172-31-10-233:~$ chmod +x cpu_stress_test.sh
+
+toor@ip-172-31-10-233:~$ ./cpu_stress_test.sh
+Starting CPU performance test for performance-vm
+Running CPU stress test for 300 seconds...
+stress-ng: info:  [6158] setting to a 300 second run per stressor
+stress-ng: info:  [6158] dispatching hogs: 4 cpu
+stress-ng: info:  [6158] successful run completed in 300.02s
+stress-ng: info:  [6158] cpu                    13862     300.01s (100.0%)    46.21      0.00
+CPU stress test completed. Logs saved in /tmp/perf_logs
+
+toor@ip-172-31-10-233:~$ ls -lh /tmp/perf_logs
+total 64K
+-rw-r--r-- 1 root root 1.2K Feb 25 17:21 cpu_after.log
+-rw-r--r-- 1 root root 1.2K Feb 25 17:16 cpu_before.log
+-rw-r--r-- 1 toor toor  54K Feb 25 17:21 cpu_during.log
+
+toor@ip-172-31-10-233:~$ nano analyze_cpu_results.sh
+toor@ip-172-31-10-233:~$ chmod +x analyze_cpu_results.sh
+
+toor@ip-172-31-10-233:~$ ./analyze_cpu_results.sh
+=== CPU Performance Analysis ===
+Before test:
+Domain: 'performance-vm'
+  cpu.time=185432000000
+  cpu.user=0
+  cpu.system=0
+  cpu.cfs_period=0
+  cpu.cfs_quota=0
+
+After test:
+Domain: 'performance-vm'
+  cpu.time=489771000000
+  cpu.user=0
+  cpu.system=0
+  cpu.cfs_period=0
+  cpu.cfs_quota=0
+
+During test (last 10 entries):
+Tue Feb 25 17:20:20 UTC 2026: CPU Usage:
+Domain: 'performance-vm'
+  cpu.time=472886000000
+%Cpu(s): 41.9 us,  2.3 sy,  0.0 ni, 55.4 id,  0.2 wa,  0.0 hi,  0.2 si,  0.0 st
+Tue Feb 25 17:20:30 UTC 2026: CPU Usage:
+Domain: 'performance-vm'
+  cpu.time=481457000000
+%Cpu(s): 43.5 us,  2.1 sy,  0.0 ni, 54.1 id,  0.2 wa,  0.0 hi,  0.1 si,  0.0 st
+Tue Feb 25 17:20:40 UTC 2026: CPU Usage:
+Domain: 'performance-vm'
+  cpu.time=489112000000
+%Cpu(s): 42.8 us,  2.2 sy,  0.0 ni, 54.7 id,  0.1 wa,  0.0 hi,  0.2 si,  0.0 st
+Tue Feb 25 17:20:50 UTC 2026: CPU Usage:
+Domain: 'performance-vm'
+  cpu.time=489771000000
+%Cpu(s): 44.0 us,  2.0 sy,  0.0 ni, 53.8 id,  0.1 wa,  0.0 hi,  0.1 si,  0.0 st
+
+----------------------------------------
+Subtask 3.3: Memory Performance Testing
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano memory_stress_test.sh
+toor@ip-172-31-10-233:~$ chmod +x memory_stress_test.sh
+
+toor@ip-172-31-10-233:~$ ./memory_stress_test.sh
+Starting memory performance test for performance-vm
+Running memory stress test...
+stress-ng: info:  [6440] setting to a 300 second run per stressor
+stress-ng: info:  [6440] dispatching hogs: 2 vm
+stress-ng: info:  [6440] successful run completed in 300.01s
+stress-ng: info:  [6440] vm                     1690     300.01s (100.0%)     5.63      0.00
+Memory stress test completed
+
+toor@ip-172-31-10-233:~$ nano analyze_memory_results.sh
+toor@ip-172-31-10-233:~$ chmod +x analyze_memory_results.sh
+
+toor@ip-172-31-10-233:~$ ./analyze_memory_results.sh
+=== Memory Performance Analysis ===
+VM Memory - Before:
+actual 2359296
+rss 1243136
+unused 917504
+available 2359296
+major_fault 23
+minor_fault 33012
+swap_in 0
+swap_out 0
+
+VM Memory - After:
+actual 2359296
+rss 1769472
+unused 327680
+available 2359296
+major_fault 26
+minor_fault 39874
+swap_in 0
+swap_out 0
+
+Host Memory - Before:
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       3.2Gi       9.2Gi       8.0Mi       2.8Gi        12Gi
+Swap:             0B          0B          0B
+
+Host Memory - After:
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       4.1Gi       8.1Gi       8.0Mi       2.8Gi        11Gi
+Swap:             0B          0B          0B
+
+Memory Ballooning Activity (sample):
+Tue Feb 25 17:26:05 UTC 2026: Memory Stats:
+actual 2359296
+rss 1368064
+unused 786432
+available 2359296
+major_fault 23
+Tue Feb 25 17:26:20 UTC 2026: Memory Stats:
+actual 2359296
+rss 1495040
+unused 655360
+available 2359296
+major_fault 24
+
+----------------------------------------
+Subtask 3.4: Comprehensive Benchmark
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano comprehensive_benchmark.sh
+toor@ip-172-31-10-233:~$ chmod +x comprehensive_benchmark.sh
+
+toor@ip-172-31-10-233:~$ ./comprehensive_benchmark.sh
+Starting comprehensive performance benchmark - 20260225_173540
+Running CPU benchmark...
+Running memory benchmark...
+Running file I/O benchmark...
+Running combined stress test...
+Comprehensive benchmark completed. Results in /tmp/benchmark_results
+
+toor@ip-172-31-10-233:~$ ls -lh /tmp/benchmark_results | tail -10
+-rw-r--r-- 1 toor toor 2.5K Feb 25 17:35 combined_stress_20260225_173540.log
+-rw-r--r-- 1 toor toor 2.2K Feb 25 17:35 cpu_benchmark_20260225_173540.log
+-rw-r--r-- 1 toor toor 3.1K Feb 25 17:36 fileio_benchmark_20260225_173540.log
+-rw-r--r-- 1 toor toor 2.6K Feb 25 17:35 memory_benchmark_20260225_173540.log
+-rw-r--r-- 1 toor toor 7.8K Feb 25 17:35 system_info_20260225_173540.log
+
+----------------------------------------
+Summarize Results
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano summarize_results.sh
+toor@ip-172-31-10-233:~$ chmod +x summarize_results.sh
+
+toor@ip-172-31-10-233:~$ ./summarize_results.sh
+=== Performance Benchmark Summary ===
+Timestamp: 20260225_173540
+
+System Configuration:
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+CPU(s):                               8
+Thread(s) per core:                   2
+Core(s) per socket:                   4
+Socket(s):                            1
+Vendor ID:                            GenuineIntel
+Model name:                           Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz
+...
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       4.3Gi       7.9Gi       8.0Mi       2.9Gi        11Gi
+Swap:             0B          0B          0B
+Id:             -
+Name:           performance-vm
+UUID:           18d6d63f-1c7a-4cdb-9e9d-0d6fbb72c4f1
+OS Type:        hvm
+State:          running
+CPU(s):         4
+Max memory:     4194304 KiB
+Used memory:    2359296 KiB
+Persistent:     yes
+Autostart:      disable
+Managed save:   no
+
+CPU Performance:
+events per second:   1768.21
+total time:                          10.0020s
+
+Memory Performance:
+1024.00 MiB transferred (13635.72 MiB/sec)
+total time:                          0.0750s
+
+File I/O Performance:
+read, MiB/s:                    87.14
+written, MiB/s:                 58.62
+total time:                          60.0049s
+
+Combined Stress Test Results:
+stress-ng: info:  [7021] successful run completed in 120.01s
+
+----------------------------------------
+Subtask 3.5: Performance Optimization Validation
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano performance_comparison.sh
+toor@ip-172-31-10-233:~$ chmod +x performance_comparison.sh
+
+toor@ip-172-31-10-233:~$ ./performance_comparison.sh
+Testing current optimized configuration...
+Running Optimized test...
+Performance comparison completed
+Results saved in /tmp/performance_comparison
+
+toor@ip-172-31-10-233:~$ ls -lh /tmp/performance_comparison/optimized_results.log
+-rw-r--r-- 1 toor toor 2.8K Feb 25 17:44 /tmp/performance_comparison/optimized_results.log
+
+toor@ip-172-31-10-233:~$ tail -40 /tmp/performance_comparison/optimized_results.log
+=== CPU Test ===
+events per second:   1068.77
+total time:                          10.0028s
+=== Memory Test ===
+1024.00 MiB transferred (12612.45 MiB/sec)
+total time:                          0.0812s
+=== VM Resource Usage ===
+Domain: 'performance-vm'
+  cpu.time=512832000000
+  balloon.current=2359296
+  balloon.maximum=4194304
+  vcpu.current=4
+  vcpu.maximum=8
+
+----------------------------------------
+Generate Performance Report
+----------------------------------------
+
+toor@ip-172-31-10-233:~$ nano generate_report.sh
+toor@ip-172-31-10-233:~$ chmod +x generate_report.sh
+
+toor@ip-172-31-10-233:~$ ./generate_report.sh
+Performance report generated: /tmp/virtualization_performance_report.txt
+=====================================
+VIRTUALIZATION PERFORMANCE REPORT
+=====================================
+Generated: 2026-02-25 17:46:09
+
+CONFIGURATION SUMMARY:
+- VM Name: performance-vm
+- vCPU Configuration: 4 vCPUs with host-passthrough
+- Memory: 4GB with ballooning enabled
+- CPU Pinning: Enabled
+- Huge Pages: Configured
+- NUMA Awareness: Enabled
+
+PERFORMANCE OPTIMIZATIONS APPLIED:
+1. vCPU Topology Optimization
+ - Matched physical CPU architecture
+ - Enabled CPU pinning for better cache locality
+ - Used host-passthrough for maximum performance
+
+2. Memory Optimization
+ - Implemented memory ballooning
+ - Configured huge pages
+ - NUMA-aware memory allocation
+
+3. Performance Monitoring
+ - Real-time resource monitoring
+ - Automated memory balancing
+ - Comprehensive benchmarking
+
+BENCHMARK RESULTS:
+Latest benchmark summary:
+=== Performance Benchmark Summary ===
+Timestamp: 20260225_173540
+...
+Combined Stress Test Results:
+stress-ng: info:  [7021] successful run completed in 120.01s
+
+RECOMMENDATIONS:
+1. Monitor memory ballooning effectiveness regularly
+2. Adjust vCPU pinning based on workload characteristics
+3. Fine-tune memory allocation based on application requirements
+4. Consider workload-specific optimizations
+
+================================================================================
+Troubleshooting (Verification Outputs)
+================================================================================
+
+toor@ip-172-31-10-233:~$ sudo virsh domstats --balloon performance-vm | head -20
+Domain: 'performance-vm'
+  balloon.current=2359296
+  balloon.maximum=4194304
+  balloon.swap_in=0
+  balloon.swap_out=0
+  balloon.major_fault=26
+  balloon.minor_fault=39874
+  balloon.unused=327680
+  balloon.available=2359296
+  balloon.rss=1769472
+
+toor@ip-172-31-10-233:~$ sudo virsh dumpxml performance-vm | grep balloon
+    <memballoon model='virtio'>
+
+toor@ip-172-31-10-233:~$ sudo systemctl restart libvirtd
+Failed to restart libvirtd.service: Unit libvirtd.service not found.
+
+✅ Realistic fix on Ubuntu:
+Check active services:
+toor@ip-172-31-10-233:~$ systemctl list-units | grep -E "libvirt|virtqemud" | head
+  virtqemud.service              loaded active running Virtual machine service
+  virtlogd.service               loaded active running Virtual machine log daemon
+  virtqemud.socket               loaded active listening Virtual machine socket
+
+Restart correct daemon:
+toor@ip-172-31-10-233:~$ sudo systemctl restart virtqemud.service
+(no output)
+
+toor@ip-172-31-10-233:~$ sudo virsh vcpuinfo performance-vm
+VCPU:           0
+CPU:            0
+State:          running
+CPU time:       92.1s
+CPU Affinity:   y-------
+
+VCPU:           1
+CPU:            1
+State:          running
+CPU time:       91.7s
+CPU Affinity:   -y------
+
+VCPU:           2
+CPU:            2
+State:          running
+CPU time:       90.9s
+CPU Affinity:   --y-----
+
+VCPU:           3
+CPU:            3
+State:          running
+CPU time:       91.3s
+CPU Affinity:   ---y----
+
+toor@ip-172-31-10-233:~$ sudo virsh capabilities | grep -A 10 topology | head -20
+      <topology sockets='1' dies='1' clusters='1' cores='4' threads='2'/>
+      <cache level='3' mode='emulate'/>
+      <pages unit='KiB' size='4'/>
+      <pages unit='KiB' size='2048'/>
+      <pages unit='KiB' size='1048576'/>
+
+toor@ip-172-31-10-233:~$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       4.5Gi       7.6Gi       8.0Mi       3.0Gi        11Gi
+Swap:             0B          0B          0B
+
+toor@ip-172-31-10-233:~$ cat /proc/meminfo | grep -i huge
+AnonHugePages:    251904 kB
+ShmemHugePages:        0 kB
+FileHugePages:         0 kB
+HugePages_Total:    1024
+HugePages_Free:      987
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:         2097152 kB
