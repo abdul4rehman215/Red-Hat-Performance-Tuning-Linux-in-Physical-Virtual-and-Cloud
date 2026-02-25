@@ -1,0 +1,315 @@
+which iostat
+/usr/bin/iostat
+
+sudo apt update
+Hit:1 http://archive.ubuntu.com/ubuntu focal InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu focal-updates InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu focal-security InRelease
+Reading package lists... Done
+
+sudo apt install -y sysstat
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+sysstat is already the newest version (12.2.0-2).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+iostat -V
+sysstat version 12.2.0
+(C) Sebastien Godard (sysstat <at> orange.fr)
+
+iostat
+Linux 5.4.0-173-generic (ip-172-31-10-232)  08/19/2026  _x86_64_  (4 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          1.12    0.00    0.44    0.03    0.10   98.31
+
+Device             tps    kB_read/s    kB_wrtn/s    kB_read    kB_wrtn
+nvme0n1           0.30         2.80         7.10      18840      47812
+
+iostat -x
+Linux 5.4.0-173-generic (ip-172-31-10-232)  08/19/2026  _x86_64_  (4 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          1.20    0.00    0.50    0.02    0.10   98.18
+
+Device            r/s     w/s   rkB/s   wkB/s  rrqm/s  wrqm/s  r_await  w_await  aqu-sz  rareq-sz  wareq-sz  svctm  %util
+nvme0n1          0.12    0.28    2.70    7.20    0.00    0.01     0.45     0.62    0.00     22.8     25.7   0.20   0.01
+
+iostat -x 2 5
+Linux 5.4.0-173-generic (ip-172-31-10-232)  08/19/2026  _x86_64_  (4 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          1.17    0.00    0.47    0.03    0.10   98.23
+
+Device            r/s     w/s   rkB/s   wkB/s  rrqm/s  wrqm/s  r_await  w_await  aqu-sz  rareq-sz  wareq-sz  svctm  %util
+nvme0n1          0.10    0.25    2.40    6.80    0.00    0.01     0.42     0.58    0.00     24.0     27.2   0.18   0.01
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          1.10    0.00    0.45    0.02    0.10   98.33
+
+Device            r/s     w/s   rkB/s   wkB/s  rrqm/s  wrqm/s  r_await  w_await  aqu-sz  rareq-sz  wareq-sz  svctm  %util
+nvme0n1          0.05    0.18    1.20    4.40    0.00    0.00     0.40     0.55    0.00     24.0     24.4   0.16   0.01
+...
+
+lsblk
+NAME         MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+nvme0n1      259:0    0   32G  0 disk
+├─nvme0n1p1  259:1    0 31.9G  0 part /
+└─nvme0n1p15 259:2    0  128M  0 part /boot/efi
+nvme1n1      259:3    0   40G  0 disk
+
+sudo fdisk -l
+Disk /dev/nvme0n1: 32 GiB, 34359738368 bytes, 67108864 sectors
+Disk model: Amazon Elastic Block Store
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+
+Device           Start      End  Sectors  Size Type
+/dev/nvme0n1p1   2048  66899967 66897920 31.9G Linux filesystem
+/dev/nvme0n1p15  2048    264191   262144  128M EFI System
+
+Disk /dev/nvme1n1: 40 GiB, 42949672960 bytes, 83886080 sectors
+Disk model: Amazon Elastic Block Store
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0x000b050e
+
+df -h
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/root        32G   11G   21G  35% /
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+tmpfs           768M  1.3M  767M   1% /run
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           384M     0  384M   0% /run/user/1001
+
+ls -la /dev/sd* /dev/vd* /dev/nvme* 2>/dev/null
+crw------- 1 root root 241, 0 Aug 19 10:02 /dev/nvme0
+brw-rw---- 1 root disk 259, 0 Aug 19 10:02 /dev/nvme0n1
+brw-rw---- 1 root disk 259, 1 Aug 19 10:02 /dev/nvme0n1p1
+brw-rw---- 1 root disk 259, 2 Aug 19 10:02 /dev/nvme0n1p15
+crw------- 1 root root 241, 1 Aug 19 10:02 /dev/nvme1
+brw-rw---- 1 root disk 259, 3 Aug 19 10:02 /dev/nvme1n1
+
+mkdir -p /tmp/iotest
+
+cd /tmp/iotest
+
+pwd
+/tmp/iotest
+
+dd if=/dev/zero of=testfile1 bs=1M count=1000 oflag=direct
+1000+0 records in
+1000+0 records out
+1048576000 bytes (1.0 GB, 1000 MiB) copied, 1.72 s, 610 MB/s
+
+iostat -x 1
+Linux 5.4.0-173-generic (ip-172-31-10-232)  08/19/2026  _x86_64_  (4 CPU)
+
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+          2.10    0.00    8.60    0.80    0.10   88.40
+
+Device            r/s     w/s   rkB/s    wkB/s  rrqm/s wrqm/s  r_await w_await aqu-sz  rareq-sz wareq-sz svctm %util
+nvme0n1          0.00  612.00    0.00  626688.0   0.00  0.00    0.00    1.10   0.62      0.0   1024.0  0.22 13.40
+^C
+
+dd if=testfile1 of=/dev/null bs=1M iflag=direct
+1000+0 records in
+1000+0 records out
+1048576000 bytes (1.0 GB, 1000 MiB) copied, 1.36 s, 735 MB/s
+
+rm -f /tmp/iotest/testfile1
+
+cat /sys/block/sda/queue/scheduler
+cat: /sys/block/sda/queue/scheduler: No such file or directory
+
+cat /sys/block/nvme0n1/queue/scheduler
+[mq-deadline] none
+
+echo deadline | sudo tee /sys/block/sda/queue/scheduler
+tee: /sys/block/sda/queue/scheduler: No such file or directory
+deadline
+
+echo mq-deadline | sudo tee /sys/block/nvme0n1/queue/scheduler
+mq-deadline
+
+cat /sys/block/nvme0n1/queue/scheduler
+[mq-deadline] none
+
+echo mq-deadline | sudo tee /sys/block/nvme0n1/queue/scheduler
+mq-deadline
+
+echo bfq | sudo tee /sys/block/nvme0n1/queue/scheduler
+tee: /sys/block/nvme0n1/queue/scheduler: Invalid argument
+bfq
+
+sudo apt install -y fio
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+fio is already the newest version (3.16-1).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+sudo apt install -y hdparm
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following NEW packages will be installed:
+  hdparm
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 88.3 kB of archives.
+Fetched 88.3 kB in 0s (421 kB/s)
+Selecting previously unselected package hdparm.
+Setting up hdparm (9.58-1) ...
+
+./disk_performance_test.sh
+=== Disk Performance Testing ===
+Device: /dev/nvme0n1
+Test file: /tmp/iotest/perftest
+Test size: 1G
+
+Testing scheduler: mq-deadline
+ Sequential write test...
+ Sequential read test...
+ Random I/O test...
+ Results for mq-deadline:
+ Sequential Write: 612 MB/s
+ Sequential Read:  745 MB/s
+ Random I/O:   read: IOPS=10.2k, BW=40.1MiB/s (42.1MB/s)
+ Random I/O:  write: IOPS=9.8k, BW=38.4MiB/s (40.2MB/s)
+
+Scheduler kyber not available on this system
+Scheduler bfq not available on this system
+
+Testing scheduler: none
+ Sequential write test...
+ Sequential read test...
+ Random I/O test...
+ Results for none:
+ Sequential Write: 625 MB/s
+ Sequential Read:  758 MB/s
+ Random I/O:   read: IOPS=10.5k, BW=41.3MiB/s (43.3MB/s)
+ Random I/O:  write: IOPS=10.1k, BW=39.6MiB/s (41.5MB/s)
+
+=== Testing Complete ===
+
+fio --name=random-read --ioengine=libaio --iodepth=16 --rw=randread --bs=4k --direct=1 --size=1G --numjobs=4 --filename=/tmp/iotest/fio-test --group_reporting --runtime=20 --time_based
+random-read: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+...
+Run status group 0 (all jobs):
+   READ: bw=158MiB/s (166MB/s), 158MiB/s-158MiB/s (166MB/s-166MB/s), io=3160MiB (3314MB), run=20001-20001msec
+     IOPS=40448, BW=158MiB/s (166MB/s)
+    lat (usec): min=82, max=2912, avg=392.11, stdev=110.44
+
+fio --name=random-write --ioengine=libaio --iodepth=16 --rw=randwrite --bs=4k --direct=1 --size=1G --numjobs=4 --filename=/tmp/iotest/fio-test --group_reporting --runtime=20 --time_based
+random-write: (g=0): rw=randwrite, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=16
+...
+Run status group 0 (all jobs):
+  WRITE: bw=132MiB/s (138MB/s), 132MiB/s-132MiB/s (138MB/s-138MB/s), io=2640MiB (2768MB), run=20001-20001msec
+    IOPS=33792, BW=132MiB/s (138MB/s)
+    lat (usec): min=104, max=3510, avg=512.40, stdev=141.20
+
+fio --name=sequential-read --ioengine=libaio --iodepth=1 --rw=read --bs=1M --direct=1 --size=2G --numjobs=1 --filename=/tmp/iotest/fio-test --group_reporting
+sequential-read: (g=0): rw=read, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, ioengine=libaio, iodepth=1
+...
+Run status group 0 (all jobs):
+   READ: bw=760MiB/s (797MB/s), 760MiB/s-760MiB/s (797MB/s-797MB/s), io=2048MiB (2147MB), run=2694-2694msec
+
+fio --name=sequential-write --ioengine=libaio --iodepth=1 --rw=write --bs=1M --direct=1 --size=2G --numjobs=1 --filename=/tmp/iotest/fio-test --group_reporting
+sequential-write: (g=0): rw=write, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, ioengine=libaio, iodepth=1
+...
+Run status group 0 (all jobs):
+  WRITE: bw=640MiB/s (671MB/s), 640MiB/s-640MiB/s (671MB/s-671MB/s), io=2048MiB (2147MB), run=3200-3200msec
+
+sudo hdparm -tT /dev/sda
+/dev/sda: No such file or directory
+
+sudo hdparm -tT /dev/nvme0n1
+/dev/nvme0n1:
+ Timing cached reads:   21468 MB in  2.00 seconds = 10736.03 MB/sec
+ HDIO_DRIVE_CMD(identify) failed: Inappropriate ioctl for device
+ Timing buffered disk reads:  2280 MB in  3.00 seconds = 759.72 MB/sec
+
+iostat -x 2
+Linux 5.4.0-173-generic (ip-172-31-10-232)  08/19/2026  _x86_64_  (4 CPU)
+
+Device            r/s     w/s   rkB/s    wkB/s  r_await  w_await  aqu-sz  %util
+nvme0n1          0.20   15.40    8.00  52800.0     0.41     0.72    0.02   1.90
+^C
+
+sudo iotop -o
+sudo: iotop: command not found
+
+sudo apt install -y iotop
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following NEW packages will be installed:
+  iotop
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Setting up iotop (0.6-24-g733f3f8-1.1) ...
+
+sudo iotop -o
+(Opened interactive iotop showing active I/O processes; exited with q)
+
+watch -n 1 'cat /proc/loadavg; echo; cat /proc/meminfo | head -5'
+Every 1.0s: cat /proc/loadavg; echo; cat /proc/meminfo | head -5
+
+0.22 0.18 0.10 1/164 6122
+
+MemTotal:        4042516 kB
+MemFree:          498120 kB
+MemAvailable:    2689012 kB
+Buffers:           89240 kB
+Cached:          1971120 kB
+(Exited with Ctrl+C)
+
+echo mq-deadline | sudo tee /sys/block/nvme0n1/queue/scheduler
+mq-deadline
+
+./analyze_results.sh
+=== I/O Scheduler Performance Analysis ===
+
+=== Database Workload Test ===
+Testing workload: database
+Current scheduler: mq-deadline
+ IOPS: 8.1k
+ Bandwidth: 64.5MiB/s
+ Average Latency: usec
+
+=== Web Server Workload Test ===
+Testing workload: webserver
+Current scheduler: mq-deadline
+ IOPS: 12.4k
+ Bandwidth: 48.9MiB/s
+ Average Latency: usec
+
+=== File Server Workload Test ===
+Testing workload: fileserver
+Current scheduler: mq-deadline
+ IOPS: 3.2k
+ Bandwidth: 210MiB/s
+ Average Latency: usec
+
+=== Analysis Complete ===
+Check log files in /tmp/ for detailed results
+
+echo bfq | sudo tee /sys/block/nvme0n1/queue/scheduler
+tee: /sys/block/nvme0n1/queue/scheduler: Invalid argument
+bfq
+
+echo kyber | sudo tee /sys/block/nvme0n1/queue/scheduler
+tee: /sys/block/nvme0n1/queue/scheduler: Invalid argument
+kyber
+
+sudo systemctl enable ioscheduler.service
+Created symlink /etc/systemd/system/multi-user.target.wants/ioscheduler.service → /etc/systemd/system/ioscheduler.service.
+
+sudo systemctl start ioscheduler.service
+
+cat /sys/block/nvme0n1/queue/scheduler
+mq-deadline [none]
