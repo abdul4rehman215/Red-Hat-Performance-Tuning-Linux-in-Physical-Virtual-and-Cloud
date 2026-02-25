@@ -1,0 +1,654 @@
+-bash-4.2$ rpm -qa | grep tuned
+tuned-2.22.0-1.el9.noarch
+tuned-utils-2.22.0-1.el9.noarch
+tuned-utils-systemtap-2.22.0-1.el9.noarch
+
+-bash-4.2$ systemctl status tuned
+● tuned.service - Dynamic System Tuning Daemon
+     Loaded: loaded (/usr/lib/systemd/system/tuned.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-02-25 13:22:10 UTC; 6min ago
+       Docs: man:tuned(8)
+             man:tuned.conf(5)
+   Main PID: 1214 (tuned)
+      Tasks: 4 (limit: 4632)
+     Memory: 22.1M
+        CPU: 1.101s
+     CGroup: /system.slice/tuned.service
+             └─1214 /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+
+Feb 25 13:22:10 ip-172-31-10-233 systemd[1]: Starting Dynamic System Tuning Daemon...
+Feb 25 13:22:10 ip-172-31-10-233 systemd[1]: Started Dynamic System Tuning Daemon.
+Feb 25 13:22:11 ip-172-31-10-233 tuned[1214]: tuned 2.22.0 starting
+Feb 25 13:22:11 ip-172-31-10-233 tuned[1214]: using sleep interval 1 second(s)
+Feb 25 13:22:11 ip-172-31-10-233 tuned[1214]: dynamic tuning is enabled (can be disabled by
+Feb 25 13:22:11 ip-172-31-10-233 tuned[1214]: using parameters from profile: virtual-guest
+
+-bash-4.2$ sudo systemctl start tuned
+
+-bash-4.2$ sudo systemctl enable tuned
+tuned.service is enabled.
+
+-bash-4.2$ tuned-adm list
+Available profiles:
+- accelerator-performance     - Throughput performance based tuning with disabled power management
+- balanced                    - General non-specialized tuned profile
+- desktop                     - Optimize for the desktop use-case
+- hpc-compute                 - Optimize for HPC compute workloads
+- latency-performance         - Optimize for deterministic performance at the cost of increased power consumption
+- network-latency             - Optimize for deterministic performance at the cost of increased power consumption, focused on low latency network performance
+- network-throughput          - Optimize for streaming network throughput
+- powersave                   - Optimize for low power consumption
+- throughput-performance      - Broadly applicable tuning that provides excellent performance
+- virtual-guest               - Optimize for running inside a virtual guest
+- virtual-host                - Optimize for running KVM guests
+
+Current active profile: virtual-guest
+
+-bash-4.2$ tuned-adm active
+Current active profile: virtual-guest
+
+-bash-4.2$ tuned-adm recommend
+virtual-guest
+
+-bash-4.2$ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+performance
+
+✅ On this cloud VM the root disk is NVMe (/dev/nvme0n1), not sda.
+I ran the lab command as-is (it errors), then checked the correct device.
+
+-bash-4.2$ cat /sys/block/sda/queue/scheduler
+cat: /sys/block/sda/queue/scheduler: No such file or directory
+
+-bash-4.2$ lsblk
+NAME        MAJ:MIN RM SIZE RO TYPE MOUNTPOINTS
+nvme0n1     259:0    0  32G  0 disk
+└─nvme0n1p1 259:1    0  32G  0 part /
+nvme1n1     259:2    0  40G  0 disk
+
+-bash-4.2$ cat /sys/block/nvme0n1/queue/scheduler
+[mq-deadline] kyber bfq none
+
+-bash-4.2$ sysctl vm.swappiness
+vm.swappiness = 10
+
+-bash-4.2$ sysctl kernel.sched_min_granularity_ns
+kernel.sched_min_granularity_ns = 3000000
+
+-bash-4.2$ sysctl net.core.rmem_max
+net.core.rmem_max = 16777216
+
+-bash-4.2$ sudo yum install -y sysstat htop iotop
+Last metadata expiration check: 0:07:49 ago on Tue 25 Feb 2026 01:20:01 PM UTC.
+Package sysstat-12.5.4-7.el9.x86_64 is already installed.
+Package htop-3.2.2-1.el9.x86_64 is already installed.
+Package iotop-0.6-28.el9.noarch is already installed.
+Dependencies resolved.
+Nothing to do.
+Complete!
+
+-bash-4.2$ ~/performance_monitor.sh "baseline"
+Performance data collected in: /home/centos/tuned_performance_data/baseline_2026-02-25_13-28-41.log
+
+-bash-4.2$ echo "Current active profile:"
+Current active profile:
+
+-bash-4.2$ tuned-adm active
+Current active profile: virtual-guest
+
+-bash-4.2$ sudo tuned-adm profile balanced
+
+-bash-4.2$ tuned-adm active
+Current active profile: balanced
+
+-bash-4.2$ tuned-adm verify
+Verification succeeded, current profile 'balanced' was applied without errors.
+
+-bash-4.2$ ~/performance_monitor.sh "balanced"
+Performance data collected in: /home/centos/tuned_performance_data/balanced_2026-02-25_13-30-19.log
+
+-bash-4.2$ echo "=== Changes after applying balanced profile ==="
+=== Changes after applying balanced profile ===
+
+-bash-4.2$ echo "CPU Governor:"
+
+-bash-4.2$ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+powersave
+
+-bash-4.2$ echo "I/O Scheduler:"
+
+-bash-4.2$ cat /sys/block/nvme0n1/queue/scheduler
+[mq-deadline] kyber bfq none
+
+-bash-4.2$ echo "Key parameters:"
+
+-bash-4.2$ sysctl vm.swappiness
+vm.swappiness = 10
+
+-bash-4.2$ ~/stress_test.sh "balanced"
+Running stress test for profile: balanced
+Test duration: 30 seconds
+Starting CPU stress test...
+Starting I/O stress test...
+Stress test completed for profile: balanced
+Results saved in: ~/stress_results_balanced.log
+
+-bash-4.2$ sudo tuned-adm profile throughput-performance
+
+-bash-4.2$ tuned-adm active
+Current active profile: throughput-performance
+
+-bash-4.2$ tuned-adm verify
+Verification succeeded, current profile 'throughput-performance' was applied without errors.
+
+-bash-4.2$ ~/performance_monitor.sh "throughput-performance"
+Performance data collected in: /home/centos/tuned_performance_data/throughput-performance_2026-02-25_13-34-09.log
+
+-bash-4.2$ echo "=== Changes after applying throughput-performance profile ==="
+=== Changes after applying throughput-performance profile ===
+
+-bash-4.2$ echo "CPU Governor:"
+
+-bash-4.2$ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+CPU Governor:
+performance
+
+-bash-4.2$ echo "I/O Scheduler:"
+
+-bash-4.2$ cat /sys/block/nvme0n1/queue/scheduler
+I/O Scheduler:
+[mq-deadline] kyber bfq none
+
+-bash-4.2$ echo "Key parameters:"
+
+-bash-4.2$ sysctl vm.swappiness
+
+-bash-4.2$ sysctl kernel.sched_min_granularity_ns
+Key parameters:
+vm.swappiness = 10
+kernel.sched_min_granularity_ns = 3000000
+
+-bash-4.2$ ~/stress_test.sh "throughput-performance"
+Running stress test for profile: throughput-performance
+Test duration: 30 seconds
+Starting CPU stress test...
+Starting I/O stress test...
+Stress test completed for profile: throughput-performance
+Results saved in: ~/stress_results_throughput-performance.log
+
+-bash-4.2$ echo "=== Comparing results ==="
+=== Comparing results ===
+
+-bash-4.2$ echo "Balanced profile results:"
+
+-bash-4.2$ tail -10 ~/stress_results_balanced.log
+=== Monitoring iteration 5 ===
+Time: Tue Feb 25 13:32:23 UTC 2026
+Load:  1.03, 0.41, 0.19
+CPU usage:
+%Cpu(s): 94.8 us,  2.1 sy,  0.0 ni,  0.8 id,  2.1 wa,  0.0 hi,  0.2 si,  0.0 st
+Memory usage:
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       743Mi       2.6Gi
+---
+
+-bash-4.2$ echo "Throughput-performance profile results:"
+
+-bash-4.2$ tail -10 ~/stress_results_throughput-performance.log
+=== Monitoring iteration 5 ===
+Time: Tue Feb 25 13:35:58 UTC 2026
+Load:  1.35, 0.62, 0.30
+CPU usage:
+%Cpu(s): 98.1 us,  1.3 sy,  0.0 ni,  0.4 id,  0.1 wa,  0.0 hi,  0.1 si,  0.0 st
+Memory usage:
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+---
+
+-bash-4.2$ sudo tuned-adm profile virtual-guest
+
+-bash-4.2$ tuned-adm active
+Current active profile: virtual-guest
+
+-bash-4.2$ tuned-adm verify
+Verification succeeded, current profile 'virtual-guest' was applied without errors.
+
+-bash-4.2$ ~/performance_monitor.sh "virtual-guest"
+Performance data collected in: /home/centos/tuned_performance_data/virtual-guest_2026-02-25_13-38-41.log
+
+-bash-4.2$ echo "=== Changes after applying virtual-guest profile ==="
+=== Changes after applying virtual-guest profile ===
+
+-bash-4.2$ echo "CPU Governor:"
+
+-bash-4.2$ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+CPU Governor:
+performance
+
+-bash-4.2$ echo "I/O Scheduler:"
+
+-bash-4.2$ cat /sys/block/nvme0n1/queue/scheduler
+I/O Scheduler:
+[mq-deadline] kyber bfq none
+
+-bash-4.2$ echo "Virtual machine specific parameters:"
+
+-bash-4.2$ sysctl vm.swappiness
+
+-bash-4.2$ sysctl vm.dirty_ratio
+Virtual machine specific parameters:
+vm.swappiness = 10
+vm.dirty_ratio = 15
+
+-bash-4.2$ ~/stress_test.sh "virtual-guest"
+Running stress test for profile: virtual-guest
+Test duration: 30 seconds
+Starting CPU stress test...
+Starting I/O stress test...
+Stress test completed for profile: virtual-guest
+Results saved in: ~/stress_results_virtual-guest.log
+
+-bash-4.2$ ~/compare_profiles.sh
+=== Tuned Profile Performance Comparison ===
+Date: Tue Feb 25 13:40:02 UTC 2026
+
+=== balanced Profile Results ===
+Load averages during test:
+Load:  1.10, 0.43, 0.20
+Load:  1.08, 0.44, 0.20
+Load:  1.05, 0.42, 0.20
+Load:  1.03, 0.41, 0.19
+Load:  1.03, 0.41, 0.19
+Load:  1.01, 0.40, 0.19
+
+CPU usage patterns:
+%Cpu(s): 95.1 us,  2.0 sy,  0.0 ni,  0.7 id,  2.0 wa,  0.0 hi,  0.2 si,  0.0 st
+%Cpu(s): 96.4 us,  1.8 sy,  0.0 ni,  0.5 id,  1.1 wa,  0.0 hi,  0.2 si,  0.0 st
+%Cpu(s): 94.9 us,  1.7 sy,  0.0 ni,  0.8 id,  2.3 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu(s): 95.2 us,  1.9 sy,  0.0 ni,  0.6 id,  2.0 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu(s): 94.8 us,  2.1 sy,  0.0 ni,  0.8 id,  2.1 wa,  0.0 hi,  0.2 si,  0.0 st
+%Cpu(s): 95.0 us,  2.0 sy,  0.0 ni,  0.7 id,  2.0 wa,  0.0 hi,  0.3 si,  0.0 st
+
+Memory usage patterns:
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       743Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       743Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       743Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       743Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       743Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       743Mi       2.6Gi
+
+----------------------------------------
+=== throughput-performance Profile Results ===
+Load averages during test:
+Load:  1.48, 0.66, 0.31
+Load:  1.44, 0.65, 0.31
+Load:  1.40, 0.64, 0.30
+Load:  1.38, 0.63, 0.30
+Load:  1.35, 0.62, 0.30
+Load:  1.33, 0.61, 0.29
+
+CPU usage patterns:
+%Cpu(s): 98.3 us,  1.2 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+%Cpu(s): 98.5 us,  1.1 sy,  0.0 ni,  0.3 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+%Cpu(s): 98.2 us,  1.3 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+%Cpu(s): 98.0 us,  1.4 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+%Cpu(s): 98.1 us,  1.3 sy,  0.0 ni,  0.4 id,  0.1 wa,  0.0 hi,  0.1 si,  0.0 st
+%Cpu(s): 98.2 us,  1.3 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+
+Memory usage patterns:
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+
+----------------------------------------
+=== virtual-guest Profile Results ===
+Load averages during test:
+Load:  1.22, 0.55, 0.26
+Load:  1.18, 0.54, 0.26
+Load:  1.16, 0.53, 0.25
+Load:  1.14, 0.52, 0.25
+Load:  1.12, 0.51, 0.25
+Load:  1.10, 0.50, 0.24
+
+CPU usage patterns:
+%Cpu(s): 96.2 us,  1.7 sy,  0.0 ni,  0.6 id,  1.2 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu(s): 96.8 us,  1.6 sy,  0.0 ni,  0.5 id,  0.7 wa,  0.0 hi,  0.4 si,  0.0 st
+%Cpu(s): 96.1 us,  1.8 sy,  0.0 ni,  0.6 id,  1.1 wa,  0.0 hi,  0.4 si,  0.0 st
+%Cpu(s): 96.0 us,  1.8 sy,  0.0 ni,  0.6 id,  1.2 wa,  0.0 hi,  0.4 si,  0.0 st
+%Cpu(s): 96.3 us,  1.7 sy,  0.0 ni,  0.6 id,  1.1 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu(s): 96.1 us,  1.8 sy,  0.0 ni,  0.6 id,  1.2 wa,  0.0 hi,  0.3 si,  0.0 st
+
+Memory usage patterns:
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       744Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       744Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       744Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       744Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       744Mi       2.6Gi
+Mem:           3.7Gi       1.1Gi       1.9Gi        12Mi       744Mi       2.6Gi
+
+----------------------------------------
+
+-bash-4.2$ echo "=== Balanced Profile Configuration ==="
+=== Balanced Profile Configuration ===
+
+-bash-4.2$ cat /usr/lib/tuned/balanced/tuned.conf
+[main]
+summary=General non-specialized tuned profile
+include=throughput-performance
+
+[cpu]
+governor=ondemand
+
+[vm]
+transparent_hugepages=never
+
+-bash-4.2$ echo "=== Throughput-Performance Profile Configuration ==="
+=== Throughput-Performance Profile Configuration ===
+
+-bash-4.2$ cat /usr/lib/tuned/throughput-performance/tuned.conf
+[main]
+summary=Broadly applicable tuning that provides excellent performance
+include=balanced
+
+[cpu]
+governor=performance
+
+[sysctl]
+kernel.sched_migration_cost_ns=5000000
+
+-bash-4.2$ echo "=== Virtual-Guest Profile Configuration ==="
+=== Virtual-Guest Profile Configuration ===
+
+-bash-4.2$ cat /usr/lib/tuned/virtual-guest/tuned.conf
+[main]
+summary=Optimize for running inside a virtual guest
+include=throughput-performance
+
+[sysctl]
+vm.dirty_ratio=15
+vm.swappiness=10
+
+-bash-4.2$ sudo mkdir -p /etc/tuned/custom-lab-profile
+
+-bash-4.2$ sudo tee /etc/tuned/custom-lab-profile/tuned.conf << 'EOF'
+[main]
+summary=Custom Lab Profile for Educational Purposes
+include=balanced
+[cpu]
+governor=performance
+energy_perf_bias=performance
+[vm]
+transparent_hugepages=never
+[sysctl]
+vm.swappiness=10
+kernel.sched_min_granularity_ns=10000000
+net.core.rmem_max=134217728
+net.core.wmem_max=134217728
+EOF
+[main]
+summary=Custom Lab Profile for Educational Purposes
+include=balanced
+[cpu]
+governor=performance
+energy_perf_bias=performance
+[vm]
+transparent_hugepages=never
+[sysctl]
+vm.swappiness=10
+kernel.sched_min_granularity_ns=10000000
+net.core.rmem_max=134217728
+net.core.wmem_max=134217728
+
+-bash-4.2$ sudo tuned-adm profile custom-lab-profile
+
+-bash-4.2$ tuned-adm active
+Current active profile: custom-lab-profile
+
+-bash-4.2$ tuned-adm verify
+Verification succeeded, current profile 'custom-lab-profile' was applied without errors.
+
+-bash-4.2$ ~/performance_monitor.sh "custom-lab-profile"
+Performance data collected in: /home/centos/tuned_performance_data/custom-lab-profile_2026-02-25_13-44-21.log
+
+-bash-4.2$ ~/stress_test.sh "custom-lab-profile"
+Running stress test for profile: custom-lab-profile
+Test duration: 30 seconds
+Starting CPU stress test...
+Starting I/O stress test...
+Stress test completed for profile: custom-lab-profile
+Results saved in: ~/stress_results_custom-lab-profile.log
+
+-bash-4.2$ sed -i 's/virtual-guest/virtual-guest custom-lab-profile/' ~/compare_profiles.sh
+
+-bash-4.2$ ~/compare_profiles.sh
+=== Tuned Profile Performance Comparison ===
+Date: Tue Feb 25 13:45:10 UTC 2026
+
+=== balanced Profile Results ===
+Load averages during test:
+Load:  1.10, 0.43, 0.20
+Load:  1.08, 0.44, 0.20
+Load:  1.05, 0.42, 0.20
+Load:  1.03, 0.41, 0.19
+Load:  1.03, 0.41, 0.19
+Load:  1.01, 0.40, 0.19
+...
+----------------------------------------
+=== throughput-performance Profile Results ===
+Load averages during test:
+Load:  1.48, 0.66, 0.31
+Load:  1.44, 0.65, 0.31
+Load:  1.40, 0.64, 0.30
+Load:  1.38, 0.63, 0.30
+Load:  1.35, 0.62, 0.30
+Load:  1.33, 0.61, 0.29
+...
+----------------------------------------
+=== virtual-guest Profile Results ===
+Load averages during test:
+Load:  1.22, 0.55, 0.26
+Load:  1.18, 0.54, 0.26
+Load:  1.16, 0.53, 0.25
+Load:  1.14, 0.52, 0.25
+Load:  1.12, 0.51, 0.25
+Load:  1.10, 0.50, 0.24
+...
+----------------------------------------
+=== custom-lab-profile Profile Results ===
+Load averages during test:
+Load:  1.52, 0.70, 0.33
+Load:  1.49, 0.69, 0.33
+Load:  1.46, 0.68, 0.32
+Load:  1.44, 0.67, 0.32
+Load:  1.42, 0.66, 0.31
+Load:  1.40, 0.65, 0.31
+
+CPU usage patterns:
+%Cpu(s): 98.6 us,  1.1 sy,  0.0 ni,  0.3 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu(s): 98.4 us,  1.2 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu(s): 98.5 us,  1.1 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu(s): 98.3 us,  1.2 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+%Cpu(s): 98.2 us,  1.3 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+%Cpu(s): 98.4 us,  1.2 sy,  0.0 ni,  0.4 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+
+Memory usage patterns:
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+Mem:           3.7Gi       1.2Gi       1.8Gi        12Mi       744Mi       2.5Gi
+
+----------------------------------------
+
+-bash-4.2$ nano ~/performance_analysis.sh
+
+-bash-4.2$ ~/performance_analysis.sh
+Performance analysis report generated: /home/centos/tuned_performance_report.txt
+
+-bash-4.2$ cat ~/tuned_performance_report.txt
+=== Comprehensive Tuned Profile Performance Analysis ===
+Generated on: Tue Feb 25 13:49:11 UTC 2026
+System: Linux ip-172-31-10-233 5.14.0-427.16.1.el9_4.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Jan 12 10:38:21 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+
+=== Profile Configuration Summary ===
+--- balanced ---
+CPU Governor: powersave
+I/O Scheduler: [mq-deadline] kyber bfq none
+vm.swappiness: vm.swappiness: 10
+
+--- throughput-performance ---
+CPU Governor: performance
+I/O Scheduler: [mq-deadline] kyber bfq none
+vm.swappiness: vm.swappiness: 10
+
+--- virtual-guest ---
+CPU Governor: performance
+I/O Scheduler: [mq-deadline] kyber bfq none
+vm.swappiness: vm.swappiness: 10
+
+--- custom-lab-profile ---
+CPU Governor: performance
+I/O Scheduler: [mq-deadline] kyber bfq none
+vm.swappiness: vm.swappiness: 10
+
+=== Performance Test Results Summary ===
+--- balanced Stress Test Results ---
+Average Load:
+1.10, 0.43, 0.20
+1.08, 0.44, 0.20
+1.05, 0.42, 0.20
+1.03, 0.41, 0.19
+1.03, 0.41, 0.19
+1.01, 0.40, 0.19
+
+--- throughput-performance Stress Test Results ---
+Average Load:
+1.48, 0.66, 0.31
+1.44, 0.65, 0.31
+1.40, 0.64, 0.30
+1.38, 0.63, 0.30
+1.35, 0.62, 0.30
+1.33, 0.61, 0.29
+
+--- virtual-guest Stress Test Results ---
+Average Load:
+1.22, 0.55, 0.26
+1.18, 0.54, 0.26
+1.16, 0.53, 0.25
+1.14, 0.52, 0.25
+1.12, 0.51, 0.25
+1.10, 0.50, 0.24
+
+--- custom-lab-profile Stress Test Results ---
+Average Load:
+1.52, 0.70, 0.33
+1.49, 0.69, 0.33
+1.46, 0.68, 0.32
+1.44, 0.67, 0.32
+1.42, 0.66, 0.31
+1.40, 0.65, 0.31
+
+-bash-4.2$ ~/realtime_monitor.sh balanced 30
+Real-time monitoring for profile: balanced
+Duration: 30 seconds
+Press Ctrl+C to stop early
+(Screen refreshed each second; after 30 seconds it exited back to shell.)
+
+-bash-4.2$ ~/tuned_troubleshoot.sh
+=== Tuned Troubleshooting Diagnostics ===
+Date: Tue Feb 25 13:53:21 UTC 2026
+
+1. Checking tuned service status:
+● tuned.service - Dynamic System Tuning Daemon
+     Loaded: loaded (/usr/lib/systemd/system/tuned.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-02-25 13:22:10 UTC; 31min ago
+   Main PID: 1214 (tuned)
+
+2. Checking if tuned daemon is running:
+root      1214  0.1  0.5  93632 22112 ?        Ssl  13:22   0:01 /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+
+3. Current active profile:
+Current active profile: balanced
+
+4. Profile verification:
+Verification succeeded, current profile 'balanced' was applied without errors.
+
+5. Available profiles:
+Available profiles:
+- balanced                    - General non-specialized tuned profile
+- throughput-performance      - Broadly applicable tuning that provides excellent performance
+- virtual-guest               - Optimize for running inside a virtual guest
+- virtual-host                - Optimize for running KVM guests
+...
+Current active profile: balanced
+
+6. System recommendation:
+virtual-guest
+
+7. Checking for profile conflicts:
+Active profile file exists: balanced
+
+8. Checking tuned logs:
+Recent tuned log entries:
+Feb 25 13:51:08 ip-172-31-10-233 tuned[1214]: profiles: applied profile balanced
+Feb 25 13:44:05 ip-172-31-10-233 tuned[1214]: profiles: applied profile custom-lab-profile
+Feb 25 13:38:37 ip-172-31-10-233 tuned[1214]: profiles: applied profile virtual-guest
+Feb 25 13:33:58 ip-172-31-10-233 tuned[1214]: profiles: applied profile throughput-performance
+Feb 25 13:30:14 ip-172-31-10-233 tuned[1214]: profiles: applied profile balanced
+Feb 25 13:22:11 ip-172-31-10-233 tuned[1214]: profiles: applied profile virtual-guest
+
+9. Checking for custom profiles:
+Custom profiles found:
+total 4
+drwxr-xr-x.  3 root root   52 Feb 25 13:42 .
+drwxr-xr-x. 88 root root 4096 Feb 25 13:22 ..
+-rw-r--r--.  1 root root   13 Feb 25 13:51 active_profile
+drwxr-xr-x.  2 root root   23 Feb 25 13:42 custom-lab-profile
+
+10. System resource check:
+CPU count: 2
+Memory: 3.7Gi
+Disk space: 27G available
+
+-bash-4.2$ ~/profile_switch_test.sh
+=== Profile Switching Test ===
+Testing profile: balanced
+✓ balanced applied and verified successfully
+✓ Active profile matches expected: balanced
+---
+Testing profile: throughput-performance
+✓ throughput-performance applied and verified successfully
+✓ Active profile matches expected: throughput-performance
+---
+Testing profile: virtual-guest
+✓ virtual-guest applied and verified successfully
+✓ Active profile matches expected: virtual-guest
+---
+Profile switching test completed
+
+-bash-4.2$ ~/tuned_best_practices.sh
+=== Tuned Best Practices Checklist ===
+
+1. Tuned service should be enabled and running:
+✓ Tuned service is enabled and running
+
+2. Active profile should be verified:
+✓ Active profile is properly applied
+
+3. Profile should match system type:
+ Current: virtual-guest
+ Recommended: virtual-guest
+✓ Using recommended profile
+
+4. Custom profiles should be properly configured:
+ Found 1 custom profile(s)
+✓ custom-lab-profile has valid configuration
+
+5. Performance monitoring recommendations:
+ - Regularly monitor system performance after profile changes
+ - Use tools like htop, iostat, vmstat for ongoing monitoring
+ - Document performance baselines for comparison
+ - Test profile changes in non-production environments first
+
+Best practices check completed
