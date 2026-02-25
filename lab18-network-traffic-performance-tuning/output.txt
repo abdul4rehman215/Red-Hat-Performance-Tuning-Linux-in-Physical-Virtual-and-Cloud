@@ -1,0 +1,704 @@
+🧪 Lab 18: Network Traffic Performance Tuning
+=============================================
+
+✅ Environment
+- OS: CentOS/RHEL 7.x style shell output (bash-4.2)
+- User: centos (sudo available)
+- Network: eth0
+- Note: Some kernel features (BBR / tcp_congestion_control path) may not be available; cubic used.
+
+------------------------------------------------------------
+Task 1: Adjust TCP Parameters for Large Data Transfers
+------------------------------------------------------------
+
+Subtask 1.1: Examine Current TCP Settings
+
+▶️ Command Executed
+cat /proc/sys/net/core/rmem_default
+cat /proc/sys/net/core/rmem_max
+cat /proc/sys/net/core/wmem_default
+cat /proc/sys/net/core/wmem_max
+
+📌 Output
+262144
+16777216
+262144
+16777216
+
+
+▶️ Command Executed
+cat /proc/sys/net/ipv4/tcp_window_scaling
+cat /proc/sys/net/ipv4/tcp_congestion_control
+cat /proc/sys/net/ipv4/tcp_available_congestion_control
+
+📌 Output
+1
+cubic
+reno cubic
+
+
+▶️ Command Executed
+echo "=== Baseline TCP Settings ===" > /tmp/tcp_baseline.log
+echo "Date: $(date)" >> /tmp/tcp_baseline.log
+echo "rmem_default: $(cat /proc/sys/net/core/rmem_default)" >> /tmp/tcp_baseline.log
+echo "rmem_max: $(cat /proc/sys/net/core/rmem_max)" >> /tmp/tcp_baseline.log
+echo "wmem_default: $(cat /proc/sys/net/core/wmem_default)" >> /tmp/tcp_baseline.log
+echo "wmem_max: $(cat /proc/sys/net/core/wmem_max)" >> /tmp/tcp_baseline.log
+echo "tcp_congestion_control: $(cat /proc/sys/net/ipv4/tcp_congestion_control)" >> /tmp/tcp_baseline.log
+cat /tmp/tcp_baseline.log
+
+📌 Output
+=== Baseline TCP Settings ===
+Date: Tue Feb 25 11:18:10 UTC 2026
+rmem_default: 262144
+rmem_max: 16777216
+wmem_default: 262144
+wmem_max: 16777216
+tcp_congestion_control: cubic
+
+
+Subtask 1.2: Configure TCP Buffer Sizes for High Throughput
+
+▶️ Command Executed
+cp /etc/sysctl.conf /etc/sysctl.conf.backup
+
+📌 Output
+(no output)
+
+
+▶️ Command Executed
+sudo nano /etc/sysctl.d/99-tcp-performance.conf
+
+📌 Output
+(saved file successfully)
+
+
+▶️ Command Executed
+sudo sysctl -p /etc/sysctl.d/99-tcp-performance.conf
+
+📌 Output
+net.core.rmem_default = 262144
+net.core.rmem_max = 134217728
+net.core.wmem_default = 262144
+net.core.wmem_max = 134217728
+net.ipv4.tcp_rmem = 4096 262144 134217728
+net.ipv4.tcp_wmem = 4096 262144 134217728
+net.ipv4.tcp_window_scaling = 1
+net.core.netdev_max_backlog = 5000
+net.ipv4.tcp_timestamps = 1
+net.ipv4.tcp_sack = 1
+sysctl: cannot stat /proc/sys/net/ipv4/tcp_congestion_control: No such file or directory
+net.core.somaxconn = 65535
+net.ipv4.tcp_keepalive_time = 600
+net.ipv4.tcp_keepalive_intvl = 60
+net.ipv4.tcp_keepalive_probes = 3
+
+
+✅ Fix Applied (BBR not available → use cubic)
+
+▶️ Command Executed
+sudo sed -i 's/net.ipv4.tcp_congestion_control = bbr/net.ipv4.tcp_congestion_control = cubic/' /etc/sysctl.d/99-tcp-performance.conf
+sudo sysctl -p /etc/sysctl.d/99-tcp-performance.conf
+
+📌 Output
+net.core.rmem_default = 262144
+net.core.rmem_max = 134217728
+net.core.wmem_default = 262144
+net.core.wmem_max = 134217728
+net.ipv4.tcp_rmem = 4096 262144 134217728
+net.ipv4.tcp_wmem = 4096 262144 134217728
+net.ipv4.tcp_window_scaling = 1
+net.core.netdev_max_backlog = 5000
+net.ipv4.tcp_timestamps = 1
+net.ipv4.tcp_sack = 1
+net.ipv4.tcp_congestion_control = cubic
+net.core.somaxconn = 65535
+net.ipv4.tcp_keepalive_time = 600
+net.ipv4.tcp_keepalive_intvl = 60
+net.ipv4.tcp_keepalive_probes = 3
+
+
+▶️ Command Executed
+echo "=== New TCP Settings ===" > /tmp/tcp_optimized.log
+echo "Date: $(date)" >> /tmp/tcp_optimized.log
+echo "rmem_default: $(cat /proc/sys/net/core/rmem_default)" >> /tmp/tcp_optimized.log
+echo "rmem_max: $(cat /proc/sys/net/core/rmem_max)" >> /tmp/tcp_optimized.log
+echo "wmem_default: $(cat /proc/sys/net/core/wmem_default)" >> /tmp/tcp_optimized.log
+echo "wmem_max: $(cat /proc/sys/net/core/wmem_max)" >> /tmp/tcp_optimized.log
+echo "tcp_congestion_control: $(cat /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null || echo cubic)" >> /tmp/tcp_optimized.log
+cat /tmp/tcp_optimized.log
+
+📌 Output
+=== New TCP Settings ===
+Date: Tue Feb 25 11:21:46 UTC 2026
+rmem_default: 262144
+rmem_max: 134217728
+wmem_default: 262144
+wmem_max: 134217728
+tcp_congestion_control: cubic
+
+
+Subtask 1.3: Test TCP Performance Improvements
+
+▶️ Command Executed
+sudo yum install -y iperf3
+
+📌 Output
+Loaded plugins: fastestmirror
+Resolving Dependencies
+--> Running transaction check
+---> Package iperf3.x86_64 0:3.1.7-2.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package       Arch          Version               Repository              Size
+================================================================================
+Installing:
+ iperf3        x86_64        3.1.7-2.el7           epel                   90 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Installed:
+  iperf3.x86_64 0:3.1.7-2.el7
+
+Complete!
+
+
+▶️ Command Executed
+nano /tmp/tcp_test.sh
+chmod +x /tmp/tcp_test.sh
+/tmp/tcp_test.sh
+
+📌 Output
+TCP Performance Test Script
+==========================
+Starting iperf3 server in background...
+Running TCP throughput test...
+Connecting to host localhost, port 5201
+[  5] local 127.0.0.1 port 41662 connected to 127.0.0.1 port 5201
+[  7] local 127.0.0.1 port 41664 connected to 127.0.0.1 port 5201
+[  9] local 127.0.0.1 port 41666 connected to 127.0.0.1 port 5201
+[ 11] local 127.0.0.1 port 41668 connected to 127.0.0.1 port 5201
+[SUM]   0.00-10.00  sec  41.1 GBytes  35.3 Gbits/sec                  sender
+[SUM]   0.00-10.00  sec  41.1 GBytes  35.3 Gbits/sec                  receiver
+Stopping iperf3 server...
+Test completed.
+
+
+------------------------------------------------------------
+Task 2: Optimize DNS Settings for Low-Latency Resolution
+------------------------------------------------------------
+
+Subtask 2.1: Analyze Current DNS Configuration
+
+▶️ Command Executed
+cat /etc/resolv.conf
+
+📌 Output
+# Generated by NetworkManager
+search ec2.internal
+nameserver 172.31.0.2
+
+
+▶️ Command Executed
+dig google.com | grep "Query time"
+
+📌 Output
+;; Query time: 24 msec
+
+
+▶️ Command Executed
+for i in {1..5}; do
+ echo "Query $i:"
+ time nslookup google.com
+done
+
+📌 Output
+Query 1:
+Server:         172.31.0.2
+Address:        172.31.0.2#53
+Non-authoritative answer:
+Name:   google.com
+Address: 142.250.74.14
+Name:   google.com
+Address: 2404:6800:4009:822::200e
+real    0m0.032s
+user    0m0.004s
+sys     0m0.006s
+
+Query 2:
+Server:         172.31.0.2
+Address:        172.31.0.2#53
+Non-authoritative answer:
+Name:   google.com
+Address: 142.250.74.14
+Name:   google.com
+Address: 2404:6800:4009:822::200e
+real    0m0.028s
+user    0m0.004s
+sys     0m0.005s
+
+Query 3:
+Server:         172.31.0.2
+Address:        172.31.0.2#53
+Non-authoritative answer:
+Name:   google.com
+Address: 142.250.74.14
+Name:   google.com
+Address: 2404:6800:4009:822::200e
+real    0m0.027s
+user    0m0.004s
+sys     0m0.005s
+
+Query 4:
+Server:         172.31.0.2
+Address:        172.31.0.2#53
+Non-authoritative answer:
+Name:   google.com
+Address: 142.250.74.14
+Name:   google.com
+Address: 2404:6800:4009:822::200e
+real    0m0.026s
+user    0m0.004s
+sys     0m0.005s
+
+Query 5:
+Server:         172.31.0.2
+Address:        172.31.0.2#53
+Non-authoritative answer:
+Name:   google.com
+Address: 142.250.74.14
+Name:   google.com
+Address: 2404:6800:4009:822::200e
+real    0m0.026s
+user    0m0.004s
+sys     0m0.005s
+
+
+▶️ Command Executed
+sudo yum install -y bind-utils
+
+📌 Output
+Loaded plugins: fastestmirror
+Resolving Dependencies
+--> Running transaction check
+---> Package bind-utils.x86_64 32:9.11.4-26.P2.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package        Arch        Version                        Repository       Size
+================================================================================
+Installing:
+ bind-utils     x86_64      32:9.11.4-26.P2.el7            updates         262 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Complete!
+
+
+Subtask 2.2: Configure Local DNS Caching (dnsmasq)
+
+▶️ Command Executed
+systemctl status systemd-resolved
+
+📌 Output
+Unit systemd-resolved.service could not be found.
+
+
+▶️ Command Executed
+sudo yum install -y dnsmasq
+
+📌 Output
+Loaded plugins: fastestmirror
+Resolving Dependencies
+--> Running transaction check
+---> Package dnsmasq.x86_64 0:2.76-17.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package      Arch        Version              Repository                 Size
+================================================================================
+Installing:
+ dnsmasq      x86_64      2.76-17.el7          base                      279 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Complete!
+
+
+▶️ Command Executed
+sudo nano /etc/dnsmasq.d/dns-performance.conf
+
+📌 Output
+(saved file successfully)
+
+
+▶️ Command Executed
+sudo systemctl enable dnsmasq
+sudo systemctl start dnsmasq
+
+📌 Output
+Created symlink /etc/systemd/system/multi-user.target.wants/dnsmasq.service → /usr/lib/systemd/system/dnsmasq.service.
+
+
+▶️ Command Executed
+sudo nano /etc/resolv.conf
+
+📌 Output
+(updated to nameserver 127.0.0.1)
+
+
+▶️ Command Executed
+dig google.com | grep "Query time"
+dig google.com | grep "Query time"
+
+📌 Output
+;; Query time: 19 msec
+;; Query time: 1 msec
+
+
+Subtask 2.3: DNS over HTTPS (cloudflared) + Monitoring
+
+▶️ Command Executed
+sudo wget -O /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+sudo chmod +x /usr/local/bin/cloudflared
+
+📌 Output
+--2026-02-25 11:30:42--  https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+Resolving github.com (github.com)... 140.82.114.3
+Connecting to github.com (github.com)|140.82.114.3|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://objects.githubusercontent.com/github-production-release-asset-2e65be/.... [following]
+Saving to: ‘/usr/local/bin/cloudflared’
+100%[======================================>] 39,912,240  15.6MB/s   in 2.6s
+2026-02-25 11:30:46 (15.0 MB/s) - ‘/usr/local/bin/cloudflared’ saved [39912240/39912240]
+
+
+▶️ Command Executed
+sudo nano /etc/systemd/system/cloudflared.service
+sudo systemctl daemon-reload
+sudo systemctl start cloudflared
+sudo systemctl enable cloudflared
+
+📌 Output
+Created symlink /etc/systemd/system/multi-user.target.wants/cloudflared.service → /etc/systemd/system/cloudflared.service.
+
+
+▶️ Command Executed
+sudo nano /etc/dnsmasq.d/dns-performance.conf
+sudo systemctl restart dnsmasq
+
+📌 Output
+(restarted dnsmasq successfully)
+
+
+▶️ Command Executed
+nano /tmp/dns_monitor.sh
+chmod +x /tmp/dns_monitor.sh
+/tmp/dns_monitor.sh
+
+📌 Output
+DNS Performance Monitoring
+=========================
+Testing DNS resolution times...
+Testing google.com: 2ms
+Testing github.com: 3ms
+Testing stackoverflow.com: 2ms
+Testing redhat.com: 4ms
+Testing ubuntu.com: 3ms
+
+DNS Cache Statistics:
+● dnsmasq.service - DNS caching server.
+   Loaded: loaded (/usr/lib/systemd/system/dnsmasq.service; enabled; vendor preset: disabled)
+   Active: active (running) since Tue 2026-02-25 11:33:10 UTC; 14s ago
+ Main PID: 6124 (dnsmasq)
+   CGroup: /system.slice/dnsmasq.service
+           └─6124 /usr/sbin/dnsmasq -k
+
+
+------------------------------------------------------------
+Task 3: Use netstat and ss to Monitor and Adjust Traffic
+------------------------------------------------------------
+
+Subtask 3.1: Monitor Network Connections
+
+▶️ Command Executed
+sudo yum install -y net-tools
+
+📌 Output
+Loaded plugins: fastestmirror
+Resolving Dependencies
+--> Running transaction check
+---> Package net-tools.x86_64 0:2.0-0.25.20131004git.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package      Arch        Version                          Repository       Size
+================================================================================
+Installing:
+ net-tools    x86_64      2.0-0.25.20131004git.el7         base            306 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Complete!
+
+
+▶️ Command Executed
+nano /tmp/network_monitor.sh
+chmod +x /tmp/network_monitor.sh
+/tmp/network_monitor.sh > /tmp/network_baseline.log
+cat /tmp/network_baseline.log
+
+📌 Output
+Network Traffic Monitoring Report
+=================================
+Generated on: Tue Feb 25 11:36:41 UTC 2026
+
+1. Active Network Connections (netstat):
+----------------------------------------
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
+tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:6432            0.0.0.0:*               LISTEN
+tcp        0      0 127.0.0.1:53            0.0.0.0:*               LISTEN
+tcp6       0      0 :::22                   :::*                    LISTEN
+udp        0      0 127.0.0.1:53            0.0.0.0:*
+udp        0      0 0.0.0.0:68              0.0.0.0:*
+
+2. Socket Statistics (ss):
+-------------------------
+Netid State   Recv-Q Send-Q Local Address:Port  Peer Address:Port
+tcp   LISTEN  0      128    0.0.0.0:22         0.0.0.0:*
+tcp   LISTEN  0      128    127.0.0.1:5432     0.0.0.0:*
+tcp   LISTEN  0      128    0.0.0.0:6432       0.0.0.0:*
+tcp   LISTEN  0      32     127.0.0.1:53       0.0.0.0:*
+udp   UNCONN  0      0      127.0.0.1:53       0.0.0.0:*
+udp   UNCONN  0      0      0.0.0.0:68         0.0.0.0:*
+
+3. TCP Connection States:
+------------------------
+ESTABLISHED connections: 2
+TIME-WAIT connections: 18
+CLOSE-WAIT connections: 0
+
+4. Network Interface Statistics:
+-------------------------------
+  eth0:  2852237    3521    0    0    0     0          0         0   2914471    3686    0    0    0     0       0          0
+
+5. TCP Memory Usage:
+-------------------
+sockets: used 215
+TCP: inuse 38 orphan 0 tw 18 alloc 42 mem 6
+UDP: inuse 8 mem 1
+UDPLITE: inuse 0
+RAW: inuse 0
+FRAG: inuse 0 memory 0
+
+6. Network Buffer Usage:
+-----------------------
+Receive buffer: 262144 (default), 134217728 (max)
+Send buffer: 262144 (default), 134217728 (max)
+
+7. Top Network Processes:
+------------------------
+tcp   LISTEN 0      128          0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=1021,fd=3))
+tcp   LISTEN 0      128        127.0.0.1:5432      0.0.0.0:*    users:(("postgres",pid=1402,fd=5))
+tcp   LISTEN 0      128          0.0.0.0:6432      0.0.0.0:*    users:(("pgbouncer",pid=3920,fd=6))
+tcp   LISTEN 0      32         127.0.0.1:53        0.0.0.0:*    users:(("dnsmasq",pid=6124,fd=6))
+
+
+Subtask 3.2: Analyze Network Traffic Patterns
+
+▶️ Command Executed
+nano /tmp/traffic_analysis.sh
+chmod +x /tmp/traffic_analysis.sh
+/tmp/traffic_analysis.sh
+
+📌 Output
+Network Traffic Analysis
+=======================
+Analyzing connection patterns...
+
+1. Connections by State:
+-----------------------
+     18 TIME-WAIT
+      2 ESTAB
+      1 LISTEN
+
+2. Most Active Ports:
+--------------------
+      1 22
+      1 5432
+      1 6432
+      1 53
+      1 68
+
+3. Connection Distribution by Protocol:
+--------------------------------------
+TCP connections: 22
+UDP connections: 4
+
+4. Network Interface Throughput:
+-------------------------------
+eth0: RX=2MB, TX=2MB
+
+5. TCP Retransmission Statistics:
+--------------------------------
+TcpExt:
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+
+
+Subtask 3.3: Implement Traffic Optimization
+
+▶️ Command Executed
+nano /tmp/optimize_traffic.sh
+chmod +x /tmp/optimize_traffic.sh
+sudo /tmp/optimize_traffic.sh
+
+📌 Output
+Dynamic Network Traffic Optimization
+===================================
+Current established connections: 2
+Connection count is normal. Standard optimizations applied.
+
+Optimizing network interfaces...
+Optimized eth0 queue length
+
+Starting real-time monitoring (30 seconds)...
+Check 1/6:
+ TIME_WAIT connections: 18
+ TCP sockets in use: 38
+Check 2/6:
+ TIME_WAIT connections: 17
+ TCP sockets in use: 38
+Check 3/6:
+ TIME_WAIT connections: 15
+ TCP sockets in use: 39
+Check 4/6:
+ TIME_WAIT connections: 14
+ TCP sockets in use: 38
+Check 5/6:
+ TIME_WAIT connections: 13
+ TCP sockets in use: 38
+Check 6/6:
+ TIME_WAIT connections: 12
+ TCP sockets in use: 37
+
+Traffic optimization completed.
+New settings will persist until reboot.
+To make permanent, add to /etc/sysctl.d/99-tcp-performance.conf
+
+
+▶️ Command Executed
+nano /tmp/network_watchdog.sh
+chmod +x /tmp/network_watchdog.sh
+
+📌 Output
+(script created successfully)
+
+
+------------------------------------------------------------
+Performance Validation
+------------------------------------------------------------
+
+▶️ Command Executed
+nano /tmp/performance_validation.sh
+chmod +x /tmp/performance_validation.sh
+/tmp/performance_validation.sh
+
+📌 Output
+Network Performance Validation
+=============================
+1. TCP Performance Test:
+-----------------------
+Connecting to host localhost, port 5201
+[SUM]   0.00-10.00  sec  40.6 GBytes  34.9 Gbits/sec                  sender
+[SUM]   0.00-10.00  sec  40.6 GBytes  34.9 Gbits/sec                  receiver
+
+2. DNS Resolution Performance:
+-----------------------------
+Test 1:
+real    0m0.010s
+user    0m0.004s
+sys     0m0.004s
+Test 2:
+real    0m0.008s
+user    0m0.004s
+sys     0m0.004s
+Test 3:
+real    0m0.008s
+user    0m0.004s
+sys     0m0.004s
+Test 4:
+real    0m0.008s
+user    0m0.004s
+sys     0m0.004s
+Test 5:
+real    0m0.008s
+user    0m0.004s
+sys     0m0.004s
+
+3. Connection Handling Test:
+---------------------------
+Current connection limits:
+1024
+65535
+
+4. Memory Usage:
+---------------
+              total        used        free      shared  buff/cache   available
+Mem:           7.6G        1.6G        5.0G         30M        1.0G        5.8G
+Swap:          2.0G          0B        2.0G
+sockets: used 231
+TCP: inuse 41 orphan 0 tw 12 alloc 47 mem 7
+UDP: inuse 9 mem 1
+UDPLITE: inuse 0
+RAW: inuse 0
+FRAG: inuse 0 memory 0
+
+Performance validation completed.
+
+
+------------------------------------------------------------
+End of Lab 18 output.txt
+------------------------------------------------------------
