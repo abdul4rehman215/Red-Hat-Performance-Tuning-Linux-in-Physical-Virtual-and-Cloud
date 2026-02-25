@@ -1,0 +1,18 @@
+#Reference copy of the unit created at: /etc/systemd/system/lab6-cgroup.service
+
+[Unit]
+Description=Lab 6 cgroup Configuration
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'mkdir -p /sys/fs/cgroup/lab6_demo && \
+ echo "+cpu +memory +io" > /sys/fs/cgroup/cgroup.subtree_control && \
+ echo "50000 100000" > /sys/fs/cgroup/lab6_demo/cpu.max && \
+ echo "50" > /sys/fs/cgroup/lab6_demo/cpu.weight && \
+ echo "104857600" > /sys/fs/cgroup/lab6_demo/memory.max && \
+ echo "83886080" > /sys/fs/cgroup/lab6_demo/memory.high'
+
+[Install]
+WantedBy=multi-user.target
