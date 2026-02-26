@@ -4,9 +4,9 @@
 
 > Low-Level Systems Analysis • Scheduler Engineering • Memory Optimization • I/O & Network Tuning
 
-A complete 20-lab hands-on Linux Performance Engineering portfolio focused on real-world system optimization across CPU, memory, disk, networking, virtualization, databases, and containers.
+### A complete 20-lab hands-on Linux Performance Engineering portfolio focused on real-world system optimization across CPU, memory, disk, networking, virtualization, databases, and containers.
 
-This repository demonstrates structured performance analysis workflows:
+### This repository demonstrates structured performance analysis workflows:
 
 > Measure → Identify Bottlenecks → Tune → Validate → Persist → Document
 
