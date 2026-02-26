@@ -1,0 +1,121 @@
+# =========================================================
+# 🖥 OS / Editor Junk
+# =========================================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# =========================================================
+# 🗂 Temporary / Backup Files
+# =========================================================
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+.cache/
+.tmp/
+
+# =========================================================
+# 📊 Logs & Monitoring Dumps
+# =========================================================
+*.log
+*.out
+*.csv
+advanced_memory_*.log
+system_performance.log
+memory_baseline.txt
+*_trace.txt
+*_trace.out
+perf_summary.txt
+detailed_trace.txt
+
+/tmp/iostat_*.log
+/tmp/cpu_*_*.log
+/tmp/memory_*_*.log
+/var/log/sar-custom/
+/var/log/performance-reports/
+
+# Optional: ignore sysstat daily binaries if not committing
+# /var/log/sa/
+
+# =========================================================
+# 💾 Disk / Filesystem Lab Artifacts (Large Files)
+# =========================================================
+*.img
+*.iso
+loop_device*
+/opt/*.img
+/opt/*_tuned.img
+/tmp/io_test/
+/tmp/testfile
+/tmp/testfile_*.dat
+
+# =========================================================
+# 🔬 Benchmark & Stress Test Artifacts
+# =========================================================
+perf_test.txt
+perf_test_efficient.txt
+test_file_*
+memory_test
+fio-test
+perftest
+*.fio
+
+swappiness_results_*
+memory_config_backup_*
+
+# =========================================================
+# 🧠 perf Profiling Artifacts
+# =========================================================
+perf.data
+perf.data.old
+*.perf
+*.data
+
+# =========================================================
+# 🧵 blktrace Artifacts (Very Large)
+# =========================================================
+trace_*
+*trace*.blktrace*
+*.blktrace*
+*.blkparse
+parsed_*.txt
+
+# =========================================================
+# 🧪 Test Binaries / Compiled Programs
+# =========================================================
+*.o
+simple_program
+file_operations
+performance_test
+test_app
+
+# =========================================================
+# 🐳 Container / Monitoring Exports
+# =========================================================
+docker_stats.csv
+k8s_performance.csv
+*performance*.csv
+
+# =========================================================
+# 🐍 Python Cache (if used later)
+# =========================================================
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+
+# =========================================================
+# 🧾 Keep Important Lab Files Tracked
+# =========================================================
+!output.txt
+!commands.sh
+!README.md
+!troubleshooting.md
+!interview_qna.md
