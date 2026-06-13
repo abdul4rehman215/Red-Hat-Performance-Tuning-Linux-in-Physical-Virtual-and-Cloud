@@ -481,6 +481,14 @@ The techniques demonstrated in this repository are intended solely for responsib
 
 ---
 
+## 🌐 Labs Portfolio Post on LinkedIn
+
+I also shared this Lab series Portfolio on LinkedIn with a concise portfolio summary, key highlights, and implementation context.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-View%20Project%20Post-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/posts/abdul4rehman215_redhat-linux-performance-tuning-physical-activity-7458901157487464448-3gPK?)
+
+---
+
 # ⭐ Final Note
 
 This repository reflects **real hands-on Linux performance engineering work** — not theoretical study.
